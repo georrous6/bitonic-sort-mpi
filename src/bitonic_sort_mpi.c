@@ -6,6 +6,14 @@
 #include <stdio.h>
 #include <limits.h>
 
+
+static TimingInfo time_info;
+
+// Accessor function
+TimingInfo get_timing_info() {
+    return time_info;
+}
+
 int cmp_asc(const void *a, const void *b) {
     return (*(int*)a - *(int*)b);
 }
@@ -83,7 +91,7 @@ void elbow_sort(int *local_row, int cols, bool is_ascending) {
 
 void distributed_bitonic_sort(int *local_row, int *recv_row, int cols, int rows, int rank) {
 
-    TimingInfo time_info = {0};
+    time_info = (TimingInfo){0.0, 0.0, 0.0, 0.0};
     double t_start = MPI_Wtime();
     initial_alternating_sort(local_row, cols, rank);
     
@@ -104,7 +112,7 @@ void distributed_bitonic_sort(int *local_row, int *recv_row, int cols, int rows,
             if (rank >= partner) {
                 MPI_Send(local_row, cols, MPI_INT, partner, 0, MPI_COMM_WORLD);
                 MPI_Recv(local_row, cols, MPI_INT, partner, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            } else if (partner < rows) {
+            } else {
                 MPI_Recv(recv_row, cols, MPI_INT, partner, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 pairwise_sort(local_row, recv_row, cols, is_ascending);
                 MPI_Send(recv_row, cols, MPI_INT, partner, 0, MPI_COMM_WORLD);
@@ -120,11 +128,4 @@ void distributed_bitonic_sort(int *local_row, int *recv_row, int cols, int rows,
 
     MPI_Barrier(MPI_COMM_WORLD);
     time_info.t_total = MPI_Wtime() - t_start;
-    if (rank == 0) {
-        printf("Timing Information:\n");
-        printf("Initial Sort: %f seconds\n", time_info.t_initial_sort);
-        printf("Communication (Pairwise): %f seconds\n", time_info.t_comm_pairwise);
-        printf("Elbow Sort: %f seconds\n", time_info.t_elbow_sort);
-        printf("Total: %f seconds\n", time_info.t_total);
-    }
 }

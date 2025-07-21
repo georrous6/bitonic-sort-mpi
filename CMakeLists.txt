@@ -1,26 +1,30 @@
 cmake_minimum_required(VERSION 3.10)
 project(BitonicSortMPI C)
 
-# Find MPI
-find_package(MPI REQUIRED)
+# Require C11 standard
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Include directories
-include_directories(
-    ${MPI_C_INCLUDE_PATH}
-    ${CMAKE_SOURCE_DIR}/include
-)
+# Find MPI package (required)
+find_package(MPI REQUIRED)
 
 # Source files
 file(GLOB SOURCES
     ${CMAKE_SOURCE_DIR}/src/*.c
 )
 
-# Executable
-add_executable(main ${SOURCES})
+# Add executable targets
+add_executable(bitonic_sort ${SOURCES} main.c)
+add_executable(test ${SOURCES} tests/test.c)
 
-# Link MPI
-target_link_libraries(main ${MPI_C_LIBRARIES} m)
+# Include directories for targets
+target_include_directories(bitonic_sort PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-# Optional: Show message
-message(STATUS "MPI Include Path: ${MPI_C_INCLUDE_PATH}")
-message(STATUS "MPI Libraries: ${MPI_C_LIBRARIES}")
+# Link MPI and math libraries
+target_link_libraries(bitonic_sort PRIVATE MPI::MPI_C m)
+target_link_libraries(test PRIVATE MPI::MPI_C m)
+
+# Optional status messages
+message(STATUS "MPI include dirs: ${MPI_C_INCLUDE_PATH}")
+message(STATUS "MPI libs: ${MPI_C_LIBRARIES}")

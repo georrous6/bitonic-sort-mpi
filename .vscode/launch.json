@@ -15,6 +15,18 @@
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Build with CMake",
             "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "Run Tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/bash",
+            "args": [
+                "${workspaceFolder}/tests/run_tests.sh"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/tests",
+            "preLaunchTask": "Build with CMake"
         }
     ]
 }

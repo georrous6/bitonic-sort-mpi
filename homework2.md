@@ -31,11 +31,11 @@ You may use the C standard library function stdlib `qsort()` to check the correc
 You must deliver:
 - A report (about 3-4 pages) that describes your parallel algorithm and implementation.
 
-- Your comments on the speed of your parallel program compared to the serial sort, after trying you program on aristotelis for $p = [1:7]$ and $q = [20:27]$.
+- Your comments on the speed of your parallel program compared to the serial sort, after trying you program on aristotelis for `p = [1:7]` and `q = [20:27]`.
 
 - The source code of your program uploaded online.
 
 Ethics: If you use code found on the web or by an LLM, you should mention your source and the changes you made. You may work in pairs; both partners must submit a single report with both names.
-Deadline: 7 January, $2025$.
+Deadline: 7 January, 2025.
 
 

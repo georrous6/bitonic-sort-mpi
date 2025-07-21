@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "stdbool.h": "c",
+        "bitonic_sort_mpi.h": "c"
+    }
+}
