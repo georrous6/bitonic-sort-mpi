@@ -5,7 +5,6 @@
 #include <errno.h>
 #include <mpi.h>
 #include <assert.h>
-#include <sys/stat.h>
 
 
 void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOptions *options) {
@@ -93,41 +92,9 @@ void validate_sort(int *local_row, int rows, int cols, int rank) {
     if (rank < rows - 1) MPI_Wait(&req, MPI_STATUS_IGNORE);
 }
 
-/**
- * Create all directories in the path, similar to `mkdir -p`.
- */
-static void create_directories(const char *filepath) {
-    char *path = strdup(filepath);
-    if (!path) return;
-
-    char *p = path;
-
-    // Skip initial slashes
-    if (*p == '/') p++;
-
-    while ((p = strchr(p, '/')) != NULL) {
-        *p = '\0';
-        if (strlen(path) > 0) {
-            if (mkdir(path, 0755) != 0 && errno != EEXIST) {
-                fprintf(stderr, "Failed to create directory '%s': %s\n", path, strerror(errno));
-                free(path);
-                return;
-            }
-        }
-        *p = '/';
-        p++;
-    }
-
-    free(path);
-}
-
-
 
 void save_timing_info(const char *filename, int p, int q, int s, TimingInfo *time_info) {
     if (filename == NULL) return;  // No file specified
-
-    // Ensure the directory exists
-    create_directories(filename);
 
     FILE *file = fopen(filename, "a");
     if (!file) {

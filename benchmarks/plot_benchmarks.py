@@ -50,4 +50,3 @@ if __name__ == "__main__":
         plt.savefig(save_path)
         print(f"Plot saved at {save_path}")
 
-        plt.show()

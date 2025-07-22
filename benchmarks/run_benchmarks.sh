@@ -5,11 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXECUTABLE="$SCRIPT_DIR/../build/bitonic_sort"
 
 P_MIN=0
-P_MAX=2
+P_MAX=7
 Q_MIN=20
 Q_MAX=27
 
-P_PLUS_Q=25
+P_PLUS_Q=30
 
 # Ensure logs directory exists
 rm -rf "$SCRIPT_DIR/logs"
