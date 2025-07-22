@@ -1,4 +1,12 @@
 #!/bin/bash
+#SBATCH --job-name=bitonic_benchmark
+#SBATCH --partition=batch
+#SBATCH --output=logs/slurm-%j.out
+#SBATCH --time=01:00:00
+#SBATCH --nodes=4
+#SBATCH --ntasks=128
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=compute
 
 # Resolve script directory to make executable paths relative to script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
