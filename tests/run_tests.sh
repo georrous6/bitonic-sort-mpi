@@ -26,9 +26,17 @@ failed_tests=0
 for p in $(seq 0 $P_MAX); do
     procs=$((2 ** p))
     for q in $(seq 0 $Q_MAX); do
-        echo -e "${BOLD_BLUE}Running with p=${p}, q=${q} ...${COLOR_RESET}"
 
-        mpirun -np $procs "$EXECUTABLE" $q $p
+        # Calculate s based on q
+        if [ $q -gt 10 ]; then
+            s=$((q - 2))
+        else
+            s=$q
+        fi
+
+        echo -e "${BOLD_BLUE}Running with p=${p}, q=${q}, s=${s} ...${COLOR_RESET}"
+
+        mpirun -np $procs "$EXECUTABLE" $q $p $s
         status=$?
         
         if [ $status -ne 0 ]; then

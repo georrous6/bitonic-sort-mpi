@@ -6,7 +6,7 @@
 #include "bitonic_sort_mpi.h"
 
 int main(int argc, char *argv[]) {
-    int q, p, rows, rank, cols;
+    int q, p, s, rows, rank, cols, buff_size;
     int *local_row = NULL, *recv_row = NULL;
     int status = EXIT_FAILURE;
 
@@ -14,14 +14,15 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &rows);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    if (argc != 3) {
-        if (rank == 0) fprintf(stderr, "Usage: %s <q> <p>\n", argv[0]);
+    if (argc != 4) {
+        if (rank == 0) fprintf(stderr, "Usage: %s <q> <p> <s>\n", argv[0]);
         MPI_Finalize();
         exit(status);
     }
 
     q = atoi(argv[1]);
     p = atoi(argv[2]);
+    s = atoi(argv[3]);
 
     if (rows != (1 << p)) {
         if (rank == 0) fprintf(stderr, "Error: number of processes must be 2^p\n");
@@ -29,7 +30,14 @@ int main(int argc, char *argv[]) {
         exit(status);
     }
 
+    if (s > q) {
+        if (rank == 0) fprintf(stderr, "Error: s must be less than or equal to q\n");
+        MPI_Finalize();
+        exit(status);
+    }
+
     cols = 1 << q;
+    buff_size = 1 << s;
     local_row = (int *)malloc(sizeof(int) * cols); 
     if (!local_row) {
         fprintf(stderr, "Memory allocation failed for local_row in process %d\n", rank);
@@ -44,7 +52,7 @@ int main(int argc, char *argv[]) {
     srand(rank + time(NULL));
     for (int i = 0; i < cols; i++) local_row[i] = rand() % 100;
 
-    distributed_bitonic_sort(local_row, recv_row, cols, rows, rank);
+    distributed_bitonic_sort(local_row, recv_row, cols, rows, buff_size, rank);
 
     // Verify local sorting
     for (int i = 0; i < cols - 1; i++) {
@@ -63,6 +71,13 @@ int main(int argc, char *argv[]) {
     if (rank < rows - 1) MPI_Wait(&req, MPI_STATUS_IGNORE);
 
     status = EXIT_SUCCESS;
+    TimingInfo time_info = get_timing_info();
+    if (rank == 0) {
+        printf("Initial sort time: %f seconds\n", time_info.t_initial_sort);
+        printf("Pairwise communication time: %f seconds\n", time_info.t_comm_pairwise);
+        printf("Elbow sort time: %f seconds\n", time_info.t_elbow_sort);
+        printf("Total time: %f seconds\n", time_info.t_total);
+    }
 
 cleanup:
     if (local_row) free(local_row);

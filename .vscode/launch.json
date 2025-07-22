@@ -2,14 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run MPI Program",
+            "name": "Debug Bitonic Sort MPI",
             "type": "cppdbg",
             "request": "launch",
             "program": "/usr/bin/mpirun",
             "args": [
                 "-np", "4",
-                "${workspaceFolder}/build/main",
-                "24", "2" // Example arguments for q and p
+                "${workspaceFolder}/build/bitonic_sort",
+                "26", "2", "24"  // Example arguments for q, p, s
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
