@@ -9,7 +9,7 @@
             "args": [
                 "-np", "4",
                 "${workspaceFolder}/build/bitonic_sort",
-                "2", "26", "24", "--verbose"  // Example arguments for p, q, s
+                "2", "25", "24", "--verbose"  // Example arguments for p, q, s
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -26,6 +26,18 @@
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/tests",
+            "preLaunchTask": "Build with CMake"
+        },
+        {
+            "name": "Run Benchmarks",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/bash",
+            "args": [
+                "${workspaceFolder}/benchmarks/run_benchmarks.sh"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/benchmarks",
             "preLaunchTask": "Build with CMake"
         }
     ]

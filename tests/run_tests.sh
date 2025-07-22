@@ -4,8 +4,11 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXECUTABLE="$SCRIPT_DIR/../build/bitonic_sort"
 
+P_MIN=0
 P_MAX=2
+Q_MIN=0
 Q_MAX=19
+Q_THRESHOLD=10
 
 # ANSI color codes
 BOLD_BLUE="\033[1;34m"
@@ -23,12 +26,12 @@ total_tests=$(( (P_MAX + 1) * (Q_MAX + 1) ))
 passed_tests=0
 failed_tests=0
 
-for p in $(seq 0 $P_MAX); do
+for p in $(seq $P_MIN $P_MAX); do
     procs=$((2 ** p))
-    for q in $(seq 0 $Q_MAX); do
+    for q in $(seq $Q_MIN $Q_MAX); do
 
         # Calculate s based on q
-        if [ $q -gt 10 ]; then
+        if [ $q -gt $Q_THRESHOLD ]; then
             s=$((q - 2))
         else
             s=$q

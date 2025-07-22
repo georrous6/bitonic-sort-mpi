@@ -12,7 +12,7 @@ typedef struct {
 } ProgramOptions;
 
 
-void parse_arguments(int argc, char *argv[], int *q, int *p, int *s, ProgramOptions *options);
+void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOptions *options);
 
 
 void validate_sort(int *local_row, int rows, int cols, int rank);

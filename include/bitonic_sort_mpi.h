@@ -14,6 +14,6 @@ typedef struct {
 TimingInfo get_timing_info();
 
 
-void distributed_bitonic_sort(int *local_row, int *recv_row, int cols, int rows, int buff_size, int rank);
+void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int n_data_proc, int buff_size, int rank);
 
 #endif
