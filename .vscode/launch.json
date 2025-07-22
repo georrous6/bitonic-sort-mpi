@@ -9,7 +9,7 @@
             "args": [
                 "-np", "4",
                 "${workspaceFolder}/build/bitonic_sort",
-                "26", "2", "24"  // Example arguments for q, p, s
+                "2", "26", "24", "--verbose"  // Example arguments for p, q, s
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

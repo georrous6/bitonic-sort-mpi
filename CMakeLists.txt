@@ -14,16 +14,13 @@ file(GLOB SOURCES
 )
 
 # Add executable targets
-add_executable(bitonic_sort ${SOURCES} main.c)
-add_executable(test ${SOURCES} tests/test.c)
+add_executable(bitonic_sort ${SOURCES})
 
 # Include directories for targets
 target_include_directories(bitonic_sort PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # Link MPI and math libraries
 target_link_libraries(bitonic_sort PRIVATE MPI::MPI_C m)
-target_link_libraries(test PRIVATE MPI::MPI_C m)
 
 # Optional status messages
 message(STATUS "MPI include dirs: ${MPI_C_INCLUDE_PATH}")

@@ -2,7 +2,7 @@
 
 # Resolve script directory to make EXECUTABLE path relative to script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXECUTABLE="$SCRIPT_DIR/../build/test"
+EXECUTABLE="$SCRIPT_DIR/../build/bitonic_sort"
 
 P_MAX=2
 Q_MAX=19
@@ -36,7 +36,7 @@ for p in $(seq 0 $P_MAX); do
 
         echo -e "${BOLD_BLUE}Running with p=${p}, q=${q}, s=${s} ...${COLOR_RESET}"
 
-        mpirun -np $procs "$EXECUTABLE" $q $p $s
+        mpirun -np $procs "$EXECUTABLE" $p $q $s
         status=$?
         
         if [ $status -ne 0 ]; then
