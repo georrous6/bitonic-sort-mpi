@@ -1,5 +1,8 @@
 # Bitonic Sort MPI
 
+![Build](https://github.com/georrous6/bitonic-sort-mpi/actions/workflows/build.yml/badge.svg)
+![Tests](https://github.com/georrous6/bitonic-sort-mpi/actions/workflows/test.yml/badge.svg)
+
 This project implements a **distributed hybrid sort using Bitonic interchanges**, leveraging 
 **MPI (Message Passing Interface)** for inter-process communication. The project includes automated 
 benchmarking and performance visualization, executed on the **Aristotelis HPC Cluster** of **ECE AUTH**.

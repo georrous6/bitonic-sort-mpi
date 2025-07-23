@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies (OpenMPI)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential openmpi-bin libopenmpi-dev make
+
+    - name: Build project
+      run: make
+
+    - name: Make test script executable
+      run: chmod +x tests/run_tests.sh
+
+    - name: Run tests
+      run: ./tests/run_tests.sh
