@@ -13,8 +13,8 @@ def read_timing_log(filepath):
         return None
 
 if __name__ == "__main__":
-    log_file = 'logs/bitonic_sort.log'
-    save_path = '../docs/figures/bitonic_sort_timing.png'
+    log_file = 'benchmarks/logs/bitonic_sort.log'
+    save_path = 'docs/figures/bitonic_sort_timing.png'
 
     df = read_timing_log(log_file)
 

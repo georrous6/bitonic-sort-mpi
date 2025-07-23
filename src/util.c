@@ -30,7 +30,7 @@ void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOpti
     *s = atoi(argv[3]);
 
     if (rows != (1 << *p)) {
-        if (rank == 0) fprintf(stderr, "Error: number of processes must be 2^p\n");
+        if (rank == 0) fprintf(stderr, "Error: number of processes must be 2^%d (nprocs: %d)\n", *p, rows);
         MPI_Finalize();
         exit(EXIT_FAILURE);
     }
