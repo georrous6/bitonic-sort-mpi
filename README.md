@@ -44,7 +44,7 @@ globally sorted order.
 
 Clone this repository
 ```bash
-git clone git@github.com:georrous6/bitonic-sort-mpi.git
+git clone https://github.com/georrous6/bitonic-sort-mpi.git
 cd bitonic-sort-mpi
 ```
 
@@ -63,7 +63,7 @@ chmod +x run_tests.sh
 ```
 
 ## Run Benchmarks (on Aristotelis HPC)
-To run the benshmarks you must have access the the Aristotelis HPC Cluster.
+To run the benchmarks you must have access the the Aristotelis HPC Cluster.
 
 ### Step 1: Connect to Aristoteis HPC
 Connect to Aristotelis HPC Cluster via ssh:
@@ -83,11 +83,17 @@ Replace `username` with your institutional username and `path/to/destination` to
 
 - **Or clone directly on Aristotelis:**
 ```bash
-git clone git@github.com:georrous6/bitonic-sort-mpi.git
+git clone https://github.com/georrous6/bitonic-sort-mpi.git
 ```
 
 ### Step 3: Submit Benchmark Job
 ```bash
 cd bitonic-sort-mpi
-sbatch benchmarks/run_benchmarks.sh
+sbatch benchmarks/run_benchmarks.sh </path/to/bitonic-sort-mpi>
+```
+Replace `/path/to/bitonic-sort-mpi` with the installation path of the repository.
+
+You can check the status of the submitted job with
+```bash
+squeue -u $USER
 ```

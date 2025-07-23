@@ -7,6 +7,8 @@
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
 
+set -e  # Exit on error immediately
+
 export UCX_WARN_UNUSED_ENV_VARS=n
 
 # First command-line argument: project dir
@@ -26,26 +28,32 @@ module load python/3.13.0
 module load openmpi/5.0.5
 
 # Create python environment
-python3 -m venv ~/myenv
-source ~/myenv/bin/activate
-pip install numpy pandas matplotlib
+if [ ! -d ~/grousenv ]; then
+    python3 -m venv ~/grousenv
+    source ~/grousenv/bin/activate
+    pip install numpy pandas matplotlib
+else
+    source ~/grousenv/bin/activate
+fi
 
 # Build the project with make
 make
 
 # Set executable path
 EXECUTABLE="$PROJECT_DIR/build/bitonic_sort"
+LOG_FILE="$PROJECT_DIR/benchmarks/logs/bitonic_sort.log"
+FIGURES_DIR="$PROJECT_DIR/docs/figures"
+DATA_DIR="$PROJECT_DIR/docs/data"
 
 P_MIN=0
 P_MAX=7
 Q_MIN=20
 Q_MAX=27
 
-P_PLUS_Q=27
 
 # Ensure logs directory exists
-rm -f "$PROJECT_DIR/benchmarks/logs/bitonic_sort.log"
 mkdir -p "$PROJECT_DIR/benchmarks/logs"
+rm -f "$LOG_FILE"
 
 # Check if bitonic sort executable exists
 if [ ! -f "$EXECUTABLE" ]; then
@@ -55,27 +63,17 @@ fi
 
 for p in $(seq $P_MIN $P_MAX); do
     procs=$((2 ** p))
+    for q in $(seq $Q_MIN $Q_MAX); do
+        for s in $(seq $q -1 $((q - 2))); do
 
-    q=$(($P_PLUS_Q - p))
-    s=$q
+            echo "Running bitonic sort with p=${p}, q=${q}, s=${s} ..."
 
-    echo "Running with p=${p}, q=${q}, s=${s} ..."
-
-    srun -n $procs "$EXECUTABLE" $p $q $s --timing-file "$PROJECT_DIR/benchmarks/logs/bitonic_sort.log"
-    status=$?
-    
-    if [ $status -ne 0 ]; then
-        echo "An error occurred while running bitonic sort with p=${p}, q=${q}, s=${s}. Exiting."
-        exit 1
-    fi
+            srun -n "$procs" "$EXECUTABLE" "$p" "$q" "$s" --timing-file "$LOG_FILE"
+        done
+    done
 done
 
-python3 "$PROJECT_DIR/benchmarks/plot_benchmarks.py"
-if [ $? -ne 0 ]; then
-    echo "An error occurred while plotting benchmarks. Exiting."
-    exit 1
-fi
-
+python3 "$PROJECT_DIR/benchmarks/plot_benchmarks.py" "$LOG_FILE" "$FIGURES_DIR" "$DATA_DIR"
 deactivate
 
 echo "All benchmarks completed successfully."

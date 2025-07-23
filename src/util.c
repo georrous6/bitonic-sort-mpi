@@ -9,7 +9,7 @@
 
 void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOptions *options) {
 
-    int rows, rank;
+    int n_procs, rank;
     // Set defaults
     options->verbose = false;  // Optional: can be set later if needed
     options->validate = true;
@@ -22,21 +22,21 @@ void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOpti
     }
 
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &rows);
+    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     *p = atoi(argv[1]);
     *q = atoi(argv[2]);
     *s = atoi(argv[3]);
 
-    if (rows != (1 << *p)) {
-        if (rank == 0) fprintf(stderr, "Error: number of processes must be 2^%d (nprocs: %d)\n", *p, rows);
+    if (n_procs != (1 << *p)) {
+        if (rank == 0) fprintf(stderr, "Error: number of processes must be 2^%d (nprocs: %d)\n", *p, n_procs);
         MPI_Finalize();
         exit(EXIT_FAILURE);
     }
 
-    if (*q < 0 || *p < 0 || *s < 0) {
-        if (rank == 0)fprintf(stderr, "Error: q, p, and s must be non-negative integers.\n");
+    if (*q < 0 || *p < 0 || *s < 0 || *q > 31 || *p > 31 || *s > 31) {
+        if (rank == 0)fprintf(stderr, "Error: q, p, and s must be in the range [0, 31].\n");
         MPI_Finalize();
         exit(EXIT_FAILURE);
     }
