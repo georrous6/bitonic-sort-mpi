@@ -4,7 +4,8 @@ import numpy as np
 import os
 import sys
 
-def plot_stacked_timing(df, figures_dir, target_sum=30):
+
+def plot_stacked_timing(df, figures_dir, target_sum):
     """
     Plot stacked timing breakdown for rows where p + q == target_sum and s == q.
     """
@@ -49,7 +50,8 @@ def plot_stacked_timing(df, figures_dir, target_sum=30):
     plt.close()
     print(f"Stacked timing plot saved at {save_path}")
 
-def export_timing_percentages(df, data_dir, target_sum=30):
+
+def export_timing_percentages(df, data_dir, target_sum):
     """
     Export timing percentages for rows where p + q == target_sum and s == q.
     """
@@ -78,45 +80,88 @@ def export_timing_percentages(df, data_dir, target_sum=30):
     export_df.to_csv(export_path, index=False, float_format='%.2f')
     print(f"Filtered timing percentages exported at {export_path}")
 
-def plot_total_time_vs_q(df, figures_dir):
+
+def plot_total_time_vs_elements(df, figures_dir):
     """
-    Plot total execution time vs q for different p values, filtered with s == q.
+    Plot total execution time vs number of elements (2^(p+q)) for different p values.
+    Filter rows where q == s.
     """
-    df_filtered = df[df['s'] == df['q']]
+    df_filtered = df[df['q'] == df['s']]
     if df_filtered.empty:
-        print("No matching rows found where s == q (total time vs q plot). Skipping plot.")
+        print("No matching rows found where q == s (total time vs elements plot). Skipping plot.")
         return
+
+    df_filtered = df_filtered.copy()
+    df_filtered['elements'] = 2 ** (df_filtered['p'] + df_filtered['q'])
 
     plt.figure(figsize=(9, 6))
     unique_p = sorted(df_filtered['p'].unique())
 
-    # Collect all unique q values across filtered data for consistent ticks
-    all_q = sorted(df_filtered['q'].unique())
-    positions = list(range(len(all_q)))  # equally spaced positions for q values
-    q_to_pos = {q: pos for q, pos in zip(all_q, positions)}
-
     for p_val in unique_p:
-        df_p = df_filtered[df_filtered['p'] == p_val]
-        df_p_sorted = df_p.sort_values('q')
-        x = df_p_sorted['q'].map(q_to_pos)
-        plt.plot(x, df_p_sorted['t_total'], marker='o', label=f'p={p_val}')
+        df_p = df_filtered[df_filtered['p'] == p_val].sort_values('elements')
+        plt.plot(df_p['elements'], df_p['t_total'], marker='o', label=f'p={p_val} (proc={2**p_val})')
+
+    plt.xscale('log', base=2)
+    plt.xlabel('Number of Elements (2^(p+q))')
+    plt.ylabel('Total Execution Time (seconds)')
+    plt.title('Total Execution Time vs Number of Elements (filtered q == s)')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(title='p values')
+    plt.tight_layout()
+
+    os.makedirs(figures_dir, exist_ok=True)
+    save_path = os.path.join(figures_dir, 'total_time_vs_elements.png')
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Total time vs elements plot saved at {save_path}")
+
+
+def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
+    """
+    Plot pairwise communication time vs number of processes (2^p) for different communication buffer splits (2^(q-s)).
+    Filter only rows where p + q == target_sum.
+    """
+    df_filtered = df[(df['p'] + df['q'] == target_sum)]
+    if df_filtered.empty:
+        print(f"No matching rows found for p + q = {target_sum} (pairwise comm plot). Skipping plot.")
+        return
+
+    # Compute the number of communication buffer splits
+    df_filtered = df_filtered.copy()
+    df_filtered['splits'] = 2 ** (df_filtered['q'] - df_filtered['s'])
+
+    plt.figure(figsize=(9, 6))
+
+    # X-axis mapping for 2^p
+    unique_p = sorted(df_filtered['p'].unique())
+    x_mapping = {p: i for i, p in enumerate(unique_p)}
+    x_labels = [str(2**p) for p in unique_p]
+
+    # Plot separate lines for each unique number of splits
+    unique_splits = sorted(df_filtered['splits'].unique())
+
+    for split_val in unique_splits:
+        df_split = df_filtered[df_filtered['splits'] == split_val]
+        df_split_sorted = df_split.sort_values('p')
+        x = df_split_sorted['p'].map(x_mapping)
+        plt.plot(x, df_split_sorted['t_comm_pairwise'], marker='o', label=f'splits = {int(split_val)}')
 
     ax = plt.gca()
-    ax.set_xticks(positions)
-    ax.set_xticklabels([str(2**q) for q in all_q])
-    ax.set_xlabel('q (Array size factor 2^q)')
-
-    plt.ylabel('Total Execution Time (seconds)')
-    plt.title('Total Execution Time vs q (for different p), filtered s == q')
-    plt.legend(title='p values')
+    ax.set_xticks(list(range(len(unique_p))))
+    ax.set_xticklabels(x_labels)
+    ax.set_xlabel('Number of Processes (2^p)')
+    ax.set_ylabel('Pairwise Communication Time (seconds)')
+    ax.set_title(f'Pairwise Communication Time vs Number of Processes\n(p + q = {target_sum})')
+    plt.legend(title='Comm. Buffer Splits')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
 
     os.makedirs(figures_dir, exist_ok=True)
-    save_path = os.path.join(figures_dir, 'total_time_vs_q.png')
+    save_path = os.path.join(figures_dir, 'pairwise_comm_vs_procs_splits_sum.png')
     plt.savefig(save_path)
     plt.close()
-    print(f"Total time vs q plot saved at {save_path}")
+    print(f"Pairwise communication time plot saved at {save_path}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
@@ -131,6 +176,7 @@ if __name__ == "__main__":
     df = pd.read_csv(log_file, sep=r'\s+', names=columns, engine='python')
 
     # Now call each function with the full dataframe
-    export_timing_percentages(df, data_dir)
-    plot_stacked_timing(df, figures_dir)
-    plot_total_time_vs_q(df, figures_dir)
+    export_timing_percentages(df, data_dir, 27)
+    plot_stacked_timing(df, figures_dir, 27)
+    plot_total_time_vs_elements(df, figures_dir)
+    plot_pairwise_comm_vs_procs(df, figures_dir, 27)

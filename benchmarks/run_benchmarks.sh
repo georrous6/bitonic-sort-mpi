@@ -2,7 +2,7 @@
 #SBATCH --job-name=bitonic_benchmark
 #SBATCH --partition=rome
 #SBATCH --output=logs/slurm-%j.out
-#SBATCH --time=01:00:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
@@ -10,6 +10,8 @@
 set -e  # Exit on error immediately
 
 export UCX_WARN_UNUSED_ENV_VARS=n
+
+echo "SLURM allocated $SLURM_JOB_NUM_NODES node(s)."
 
 # First command-line argument: project dir
 PROJECT_DIR="$1"

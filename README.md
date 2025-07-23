@@ -26,9 +26,8 @@ globally sorted order.
 ---
 
 ## Requirements
-- **CMake** (for building the project)
 - **MPI implementation** (e.g., OpenMPI, MPICH)
-- **Python 3** (with `pandas`, `matplotlib` for plotting)
+- **Python 3** (with `pandas`, `numpy` and `matplotlib`)
 - **Slurm workload manager** (for submitting jobs on Aristotelis)
 
 ## Project Structure
@@ -48,10 +47,9 @@ git clone https://github.com/georrous6/bitonic-sort-mpi.git
 cd bitonic-sort-mpi
 ```
 
-Build the project with CMake:
+Build the project with make:
 ```bash
-cmake -S . -B build
-cmake --build build
+make
 ```
 
 ## Run Tests
