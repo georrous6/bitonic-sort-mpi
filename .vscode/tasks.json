@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build with CMake",
+            "label": "Build with make",
             "type": "shell",
-            "command": "cmake -S . -B build && cmake --build build",
+            "command": "make",
             "problemMatcher": [],
             "group": "build"
         },

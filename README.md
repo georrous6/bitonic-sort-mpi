@@ -6,6 +6,23 @@ benchmarking and performance visualization, executed on the **Aristotelis HPC Cl
 
 ---
 
+## Table of Contents
+
+- [Problem Overview](#problem-overview)
+  - [Algorithm Summary](#algorithm-summary)
+- [Requirements](#requirements)
+- [Project Structure](#project-structure)
+- [Build Instructions](#build-instructions)
+- [Run Tests](#run-tests)
+- [Execution Time Breakdown](#execution-time-breakdown)
+- [Run Benchmarks (on Aristotelis HPC)](#run-benchmarks-on-aristotelis-hpc)
+  - [Step 1: Connect to Aristotelis HPC](#step-1-connect-to-aristotelis-hpc)
+  - [Step 2: Upload Project](#step-2-upload-project)
+  - [Step 3: Submit Benchmark Job](#step-3-submit-benchmark-job)
+- [Acknowledgments](#acknowledgments)
+
+---
+
 ## Problem Overview
 
 The goal is to **sort `N = 2^(p + q)` integers in ascending order**, distributed among 
@@ -60,6 +77,21 @@ chmod +x run_tests.sh
 ./run_tests.sh
 ```
 
+## Execution Time Breakdown
+
+| **p** | **q** | **Initial Sort (%)** | **Pairwise Sort (%)** | **Elbow Sort (%)** | **Other (%)** |
+|-------|-------|---------------------|----------------------|-------------------|--------------|
+| 0     | 27    | **100.00**          | 0.00                 | 0.00              | 0.00         |
+| 1     | 26    | **92.79**           | 2.54                 | 4.66              | 0.01         |
+| 2     | 25    | **81.27**           | 6.79                 | 11.93             | 0.01         |
+| 3     | 24    | **69.53**           | 12.42                | 18.04             | 0.01         |
+| 4     | 23    | **58.09**           | 21.84                | 20.06             | 0.02         |
+| 5     | 22    | **43.02**           | 35.50                | 21.45             | 0.03         |
+| 6     | 21    | 29.92               | **50.97**            | 19.08             | 0.03         |
+| 7     | 20    | 17.07               | **66.08**            | 16.81             | 0.05         |
+
+![Time Breakdown](docs/figures/stacked_timing.png)
+
 ## Run Benchmarks (on Aristotelis HPC)
 To run the benchmarks you must have access the the Aristotelis HPC Cluster.
 
@@ -87,11 +119,18 @@ git clone https://github.com/georrous6/bitonic-sort-mpi.git
 ### Step 3: Submit Benchmark Job
 ```bash
 cd bitonic-sort-mpi
-sbatch benchmarks/run_benchmarks.sh </path/to/bitonic-sort-mpi>
+sbatch --nodes=4 benchmarks/run_benchmarks.sh </path/to/bitonic-sort-mpi>
 ```
 Replace `/path/to/bitonic-sort-mpi` with the installation path of the repository.
+
+Adjust the number of nodes based on the available HPC resources.
 
 You can check the status of the submitted job with
 ```bash
 squeue -u $USER
 ```
+
+## Acknowledgments
+
+The experiments presented in this work were conducted using the Aristotelis HPC cluster at Aristotle 
+University of Thessaloniki (AUTH).

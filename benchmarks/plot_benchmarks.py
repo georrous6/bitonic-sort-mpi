@@ -25,7 +25,7 @@ def plot_stacked_timing(df, figures_dir, target_sum):
     x_mapping = {p: i for i, p in enumerate(unique_p)}
     x = df_filtered['p'].map(x_mapping)
 
-    plt.figure(figsize=(9, 6))
+    plt.figure(figsize=(6, 4))
     plt.bar(x, initial, label='Initial Sort', color='#4CAF50')
     plt.bar(x, pairwise, bottom=initial, label='Pairwise Comm', color='#2196F3')
     plt.bar(x, elbow, bottom=initial + pairwise, label='Elbow Sort', color='#FFC107')
@@ -94,7 +94,7 @@ def plot_total_time_vs_elements(df, figures_dir):
     df_filtered = df_filtered.copy()
     df_filtered['elements'] = 2 ** (df_filtered['p'] + df_filtered['q'])
 
-    plt.figure(figsize=(9, 6))
+    plt.figure(figsize=(6, 4))
     unique_p = sorted(df_filtered['p'].unique())
 
     for p_val in unique_p:
@@ -130,7 +130,7 @@ def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
     df_filtered = df_filtered.copy()
     df_filtered['splits'] = 2 ** (df_filtered['q'] - df_filtered['s'])
 
-    plt.figure(figsize=(9, 6))
+    plt.figure(figsize=(6, 4))
 
     # X-axis mapping for 2^p
     unique_p = sorted(df_filtered['p'].unique())

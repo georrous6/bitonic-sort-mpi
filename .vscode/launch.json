@@ -13,7 +13,7 @@
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "Build with CMake",
+            "preLaunchTask": "Build with make",
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
@@ -26,19 +26,7 @@
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/tests",
-            "preLaunchTask": "Build with CMake"
-        },
-        {
-            "name": "Run Benchmarks",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "/usr/bin/bash",
-            "args": [
-                "${workspaceFolder}/benchmarks/run_benchmarks.sh"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/benchmarks",
-            "preLaunchTask": "Build with CMake"
+            "preLaunchTask": "Build with make"
         }
     ]
 }
