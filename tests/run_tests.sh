@@ -39,7 +39,7 @@ for p in $(seq $P_MIN $P_MAX); do
 
         echo -e "${BOLD_BLUE}Running with p=${p}, q=${q}, s=${s} ...${COLOR_RESET}"
 
-        mpirun -np $procs "$EXECUTABLE" $p $q $s
+        mpirun --oversubscribe -np $procs "$EXECUTABLE" $p $q $s
         status=$?
         
         if [ $status -ne 0 ]; then
