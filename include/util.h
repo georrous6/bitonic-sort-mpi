@@ -2,13 +2,14 @@
 #define UTIL_H
 
 #include <stdbool.h>
-#include "bitonic_sort_mpi.h"
+#include "distributed_sort_mpi.h"
 
 
 typedef struct {
     bool verbose;       // Optional: enable verbose output
     bool validate;      // Optional: enable validation of the sort
     char *timing_file;  // Optional: file to save timing information
+    int depth;          // Optional: depth for parallel merge sort
 } ProgramOptions;
 
 

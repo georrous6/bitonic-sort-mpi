@@ -11,12 +11,13 @@ void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOpti
 
     int n_procs, rank;
     // Set defaults
-    options->verbose = false;  // Optional: can be set later if needed
+    options->verbose = false;
     options->validate = true;
-    options->timing_file = NULL;  // Optional: can be set later if needed
+    options->timing_file = NULL;
+    options->depth = 0;
 
     if (argc < 4) {
-        fprintf(stderr, "Usage: %s <q> <p> <s> [--verbose] [--no-validation] [--timing-file <file>]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <p> <q> <s> [--verbose] [--no-validation] [--timing-file <file>] [--depth <depth>]\n", argv[0]);
         MPI_Finalize();
         exit(EXIT_FAILURE);
     }
@@ -61,7 +62,17 @@ void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOpti
                 MPI_Finalize();
                 exit(EXIT_FAILURE);
             }
-        } 
+        }
+        else if (strcmp(argv[i], "--depth") == 0) {
+            if (i + 1 < argc) {
+                options->depth = atoi(argv[++i]) < 0 ? 0 : atoi(argv[i]);
+            } 
+            else {
+                fprintf(stderr, "Error: --depth requires an integer value.\n");
+                MPI_Finalize();
+                exit(EXIT_FAILURE);
+            }
+        }
         else if (strcmp(argv[i], "--no-validation") == 0) {
             options->validate = false;
         } 

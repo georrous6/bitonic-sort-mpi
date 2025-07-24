@@ -1,6 +1,6 @@
 CC = mpicc
-CFLAGS = -std=c11 -Wall -Iinclude
-LDFLAGS = -lm
+CFLAGS = -std=c11 -Wall -fopenmp -Iinclude
+LDFLAGS = -lm -fopenmp
 SRC_DIR = src
 BUILD_DIR = build
 TARGET = $(BUILD_DIR)/bitonic_sort

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <mpi.h>
 #include "util.h"
-#include "bitonic_sort_mpi.h"
+#include "distributed_sort_mpi.h"
 
 
 int main(int argc, char *argv[]) {
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     srand(rank);
     for (int i = 0; i < n_data_proc; i++) local_data[i] = rand();
 
-    distributed_bitonic_sort(local_data, recv_data, n_procs, n_data_proc, buff_size, rank);
+    distributed_bitonic_sort(local_data, recv_data, n_procs, n_data_proc, buff_size, rank, options.depth);
 
     if (options.validate) {
         validate_sort(local_data, n_procs, n_data_proc, rank);

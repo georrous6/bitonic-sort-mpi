@@ -15,8 +15,10 @@ benchmarking and performance visualization, executed on the **Aristotelis HPC Cl
   - [Algorithm Summary](#algorithm-summary)
 - [Requirements](#requirements)
 - [Project Structure](#project-structure)
-- [Build Instructions](#build-instructions)
-- [Run Tests](#run-tests)
+- [Setup Locally](#setup-locally)
+  - [Build the Program](#build-the-program)
+  - [Run the Program](#run-the-program)
+  - [Run Tests](#run-tests)
 - [Execution Time Breakdown](#execution-time-breakdown)
 - [Run Benchmarks (on Aristotelis HPC)](#run-benchmarks-on-aristotelis-hpc)
   - [Step 1: Connect to Aristotelis HPC](#step-1-connect-to-aristotelis-hpc)
@@ -59,7 +61,7 @@ globally sorted order.
 - **`scr`**: Source code
 - **`tests`**: Unit tests and validation scripts
 
-## Build Instructions
+## Setup Locally
 
 Clone this repository
 ```bash
@@ -67,12 +69,32 @@ git clone https://github.com/georrous6/bitonic-sort-mpi.git
 cd bitonic-sort-mpi
 ```
 
-Build the project with make:
+### Build the Program
+Build the project using `make`:
 ```bash
 make
 ```
 
-## Run Tests
+### Run the Program
+Execute the program locally with `mpirun`
+```bash
+cd build
+mpirun -np <nprocs> bitonic_sort <p> <q> <s> [options]
+```
+**Positional Arguments**
+- `nprocs`: The number of MPI processes
+- `p`: Binary logarithm of the number of MPI processes (`nprocs = 2^p`)
+- `q`: Binary logarithm of the number of elements per process
+- `2^s`: Binary logarithm of the communication buffer size (`s <= q`)
+
+**Optional Flags**
+- `--verbose`: Print detailed execution info (e.g., timing, memory usage)
+- `--no-validation`: Skip correctness verification of the sorted output
+- `--timing-file <file>`: Output timing metrics to the specified file
+- `--depth <depth>`: Number of OpenMP parallel sections used for local sorting
+(`ntreads = 2^depth`)
+
+### Run Tests
 To run the tests type
 ```bash
 cd tests

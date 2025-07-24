@@ -1,5 +1,5 @@
-#ifndef BITONIC_SORT_MPI_H
-#define BITONIC_SORT_MPI_H
+#ifndef DISTRIBUTED_SORT_MPI_H
+#define DISTRIBUTED_SORT_MPI_H
 
 #include <stdbool.h>
 
@@ -14,6 +14,6 @@ typedef struct {
 TimingInfo get_timing_info();
 
 
-void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int n_data_proc, int buff_size, int rank);
+void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int n_data_proc, int buff_size, int rank, int depth);
 
 #endif

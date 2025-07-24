@@ -1,4 +1,5 @@
-#include "bitonic_sort_mpi.h"
+#include "distributed_sort_mpi.h"
+#include "parallel_sort_omp.h"
 #include <mpi.h>
 #include <stdbool.h>
 #include <math.h>
@@ -9,26 +10,12 @@
 
 static TimingInfo time_info;
 
+
 // Accessor function
 TimingInfo get_timing_info() {
     return time_info;
 }
 
-static int cmp_asc(const void *a, const void *b) {
-    return (*(int*)a - *(int*)b);
-}
-
-static int cmp_desc(const void *a, const void *b) {
-    return (*(int*)b - *(int*)a);
-}
-
-static void initial_alternating_sort(int *local_data, int n_data_proc, int rank) {
-    if (rank % 2 == 0) {
-        qsort(local_data, n_data_proc, sizeof(int), cmp_asc);
-    } else {
-        qsort(local_data, n_data_proc, sizeof(int), cmp_desc);
-    }
-}
 
 static void pairwise_exchange(int *local_data, int *recv_data, int n_data_proc, bool is_ascending) {
 
@@ -103,7 +90,7 @@ static void elbow_sort(int *local_data, int n_data_proc, bool is_ascending, int 
 }
 
 
-void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int n_data_proc, int buff_size, int rank) {
+void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int n_data_proc, int buff_size, int rank, int depth) {
 
     MPI_Request *send_reqs = NULL, *recv_reqs = NULL;
     int *buff = NULL;
@@ -113,7 +100,7 @@ void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int 
     alloc_memory(&send_reqs, &recv_reqs, &buff, &n_reqs, n_data_proc, buff_size);
 
     time_info = (TimingInfo){0.0, 0.0, 0.0, 0.0};
-    initial_alternating_sort(local_data, n_data_proc, rank);
+    parallel_merge_sort(local_data, 0, n_data_proc - 1, depth, rank % 2 == 0);
     
     MPI_Barrier(MPI_COMM_WORLD);
     time_info.t_initial_sort = MPI_Wtime() - t_start;
