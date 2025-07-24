@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
         printf("Total time: %lf seconds\n", time_info.t_total);
     }
     if (options.timing_file && rank == 0) {
-        save_timing_info(options.timing_file, p, q, s, &time_info);
+        save_timing_info(options.timing_file, p, q, s, options.depth, &time_info);
     }
 
     status = EXIT_SUCCESS;
