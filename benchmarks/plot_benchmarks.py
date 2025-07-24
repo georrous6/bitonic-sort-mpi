@@ -158,6 +158,45 @@ def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
     print(f"Pairwise communication time plot saved at {save_path}")
 
 
+def plot_total_time_vs_procs_by_depth(df, figures_dir, target_sum):
+    """
+    Plot total execution time vs number of processes (2^p) for different depth values,
+    filtered by p + q == target_sum and s == q.
+    """
+    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['s'] == df['q'])]
+    if df_filtered.empty:
+        print(f"No matching rows found for p + q = {target_sum}, s == q (total time vs procs by depth). Skipping plot.")
+        return
+
+    plt.figure(figsize=(6, 4))
+    unique_depths = sorted(df_filtered['depth'].unique())
+    unique_p = sorted(df_filtered['p'].unique())
+    x_mapping = {p: i for i, p in enumerate(unique_p)}
+    x_labels = [str(2 ** p) for p in unique_p]
+
+    for depth_val in unique_depths:
+        df_depth = df_filtered[df_filtered['depth'] == depth_val]
+        df_depth_sorted = df_depth.sort_values('p')
+        x = df_depth_sorted['p'].map(x_mapping)
+        plt.plot(x, df_depth_sorted['t_total'], marker='o', label=f'depth = {depth_val}')
+
+    ax = plt.gca()
+    ax.set_xticks(list(range(len(unique_p))))
+    ax.set_xticklabels(x_labels)
+    ax.set_xlabel('Number of Processes (2^p)')
+    ax.set_ylabel('Total Execution Time (seconds)')
+    ax.set_title(f'Total Time vs Number of Processes\n(p + q = {target_sum}, s = q)')
+    plt.legend(title='Depth')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+
+    os.makedirs(figures_dir, exist_ok=True)
+    save_path = os.path.join(figures_dir, 'total_time_vs_procs_by_depth.png')
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Total time vs processes (by depth) plot saved at {save_path}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("Usage: python plot_bitonic_timing.py <log_file_path> <figures_save_dir> <data_save_dir>")
@@ -175,3 +214,5 @@ if __name__ == "__main__":
     plot_stacked_timing(df, figures_dir, 27)
     plot_total_time_vs_elements(df, figures_dir)
     plot_pairwise_comm_vs_procs(df, figures_dir, 27)
+    plot_total_time_vs_procs_by_depth(df, figures_dir, 27)
+

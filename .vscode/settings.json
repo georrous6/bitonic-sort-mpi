@@ -3,6 +3,7 @@
         "stdbool.h": "c",
         "bitonic_sort_mpi.h": "c",
         "limits.h": "c",
-        "mpi.h": "c"
+        "mpi.h": "c",
+        "parallel_sort_omp.h": "c"
     }
 }

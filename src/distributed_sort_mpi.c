@@ -2,7 +2,6 @@
 #include "parallel_sort_omp.h"
 #include <mpi.h>
 #include <stdbool.h>
-#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
@@ -105,7 +104,14 @@ void distributed_bitonic_sort(int *local_data, int *recv_data, int n_procs, int 
     MPI_Barrier(MPI_COMM_WORLD);
     time_info.t_initial_sort = MPI_Wtime() - t_start;
 
-    int stages = (int) log2(n_procs);
+    int stages = 0;
+    int temp = n_procs;
+
+    while (temp > 1) {
+        temp = temp >> 1;
+        stages++;
+    }
+
     for (int stage = 1; stage <= stages; stage++) {
         int num_chunks = 1 << (stages - stage);
         int chunk_size = n_procs / num_chunks;

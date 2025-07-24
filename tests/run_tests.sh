@@ -26,6 +26,8 @@ total_tests=$(( (P_MAX + 1) * (Q_MAX + 1) ))
 passed_tests=0
 failed_tests=0
 
+export OMP_NUM_THREADS=4
+
 for p in $(seq $P_MIN $P_MAX); do
     procs=$((2 ** p))
     for q in $(seq $Q_MIN $Q_MAX); do
@@ -37,9 +39,10 @@ for p in $(seq $P_MIN $P_MAX); do
             s=$q
         fi
 
+
         echo -e "${BOLD_BLUE}Running with p=${p}, q=${q}, s=${s} ...${COLOR_RESET}"
 
-        mpirun --oversubscribe -np $procs "$EXECUTABLE" $p $q $s
+        mpirun --oversubscribe -np "$procs" "$EXECUTABLE" "$p" "$q" "$s" --depth 2
         status=$?
         
         if [ $status -ne 0 ]; then
