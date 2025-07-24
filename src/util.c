@@ -85,26 +85,26 @@ void parse_arguments(int argc, char *argv[], int *p, int *q, int *s, ProgramOpti
 }
 
 
-void validate_sort(int *local_row, int rows, int cols, int rank) {
+void validate_sort(int *local_data, int n_procs, int n_data_proc, int rank) {
     // Verify local sorting
-    for (int i = 0; i < cols - 1; i++) {
-       assert(local_row[i] <= local_row[i + 1]);
+    for (int i = 0; i < n_data_proc - 1; i++) {
+       assert(local_data[i] <= local_data[i + 1]);
     }
 
     int tmp;
     MPI_Request req;
-    if (rank < rows - 1) {  // Send the last element to the next process
-        MPI_Isend(local_row + cols - 1, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD, &req);
+    if (rank < n_procs - 1) {  // Send the last element to the next process
+        MPI_Isend(local_data + n_data_proc - 1, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD, &req);
     }
     if (rank > 0) { // Receive the last element of the previous process
         MPI_Recv(&tmp, 1, MPI_INT, rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        assert(tmp <= local_row[0]);
+        assert(tmp <= local_data[0]);
     }
-    if (rank < rows - 1) MPI_Wait(&req, MPI_STATUS_IGNORE);
+    if (rank < n_procs - 1) MPI_Wait(&req, MPI_STATUS_IGNORE);
 }
 
 
-void save_timing_info(const char *filename, int p, int q, int s, TimingInfo *time_info) {
+void save_timing_info(const char *filename, int p, int q, int s, int depth, TimingInfo *time_info) {
     if (filename == NULL) return;  // No file specified
 
     FILE *file = fopen(filename, "a");
@@ -113,7 +113,7 @@ void save_timing_info(const char *filename, int p, int q, int s, TimingInfo *tim
         return;
     }
 
-    fprintf(file, "%d %d %d %lf %lf %lf %lf\n", p, q, s,
+    fprintf(file, "%d %d %d %d %lf %lf %lf %lf\n", p, q, s, depth,
             time_info->t_initial_sort,
             time_info->t_comm_pairwise,
             time_info->t_elbow_sort,

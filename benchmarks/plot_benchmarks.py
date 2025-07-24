@@ -7,12 +7,11 @@ import sys
 
 def plot_stacked_timing(df, figures_dir, target_sum):
     """
-    Plot stacked timing breakdown for rows where p + q == target_sum and s == q.
+    Plot stacked timing breakdown for rows where p + q == target_sum, s == q, and depth == 0.
     """
-    # Apply filtering inside the function
-    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['s'] == df['q'])]
+    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['s'] == df['q']) & (df['depth'] == 0)]
     if df_filtered.empty:
-        print(f"No matching rows found for p + q = {target_sum} and s == q (stacked timing plot). Skipping plot.")
+        print(f"No matching rows found for p + q = {target_sum}, s == q, depth == 0 (stacked timing plot). Skipping plot.")
         return
 
     initial = df_filtered['t_initial_sort']
@@ -20,7 +19,6 @@ def plot_stacked_timing(df, figures_dir, target_sum):
     elbow = df_filtered['t_elbow_sort']
     other = df_filtered['t_total'] - (initial + pairwise + elbow)
 
-    # Map p exponents to evenly spaced x positions
     unique_p = sorted(df_filtered['p'].unique())
     x_mapping = {p: i for i, p in enumerate(unique_p)}
     x = df_filtered['p'].map(x_mapping)
@@ -53,11 +51,11 @@ def plot_stacked_timing(df, figures_dir, target_sum):
 
 def export_timing_percentages(df, data_dir, target_sum):
     """
-    Export timing percentages for rows where p + q == target_sum and s == q.
+    Export timing percentages for rows where p + q == target_sum, s == q, and depth == 0.
     """
-    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['s'] == df['q'])]
+    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['s'] == df['q']) & (df['depth'] == 0)]
     if df_filtered.empty:
-        print(f"No matching rows found for p + q = {target_sum} and s == q (export). Skipping export.")
+        print(f"No matching rows found for p + q = {target_sum}, s == q, depth == 0 (export). Skipping export.")
         return
 
     initial = df_filtered['t_initial_sort']
@@ -72,7 +70,7 @@ def export_timing_percentages(df, data_dir, target_sum):
     df_percent['other_pct'] = (other / df_filtered['t_total']) * 100
     df_percent['total_time'] = df_filtered['t_total']
 
-    export_columns = ['p', 'q', 's', 'total_time', 'initial_pct', 'pairwise_pct', 'elbow_pct', 'other_pct']
+    export_columns = ['p', 'q', 's', 'depth', 'total_time', 'initial_pct', 'pairwise_pct', 'elbow_pct', 'other_pct']
     export_df = df_percent[export_columns]
 
     os.makedirs(data_dir, exist_ok=True)
@@ -84,11 +82,11 @@ def export_timing_percentages(df, data_dir, target_sum):
 def plot_total_time_vs_elements(df, figures_dir):
     """
     Plot total execution time vs number of elements (2^(p+q)) for different p values.
-    Filter rows where q == s.
+    Only for rows where q == s and depth == 0.
     """
-    df_filtered = df[df['q'] == df['s']]
+    df_filtered = df[(df['q'] == df['s']) & (df['depth'] == 0)]
     if df_filtered.empty:
-        print("No matching rows found where q == s (total time vs elements plot). Skipping plot.")
+        print("No matching rows found where q == s, depth == 0 (total time vs elements plot). Skipping plot.")
         return
 
     df_filtered = df_filtered.copy()
@@ -104,7 +102,7 @@ def plot_total_time_vs_elements(df, figures_dir):
     plt.xscale('log', base=2)
     plt.xlabel('Number of Elements (2^(p+q))')
     plt.ylabel('Total Execution Time (seconds)')
-    plt.title('Total Execution Time vs Number of Elements (filtered q == s)')
+    plt.title('Total Execution Time vs Number of Elements (filtered q == s, depth == 0)')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.legend(title='p values')
     plt.tight_layout()
@@ -119,25 +117,22 @@ def plot_total_time_vs_elements(df, figures_dir):
 def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
     """
     Plot pairwise communication time vs number of processes (2^p) for different communication buffer splits (2^(q-s)).
-    Filter only rows where p + q == target_sum.
+    Only for rows where p + q == target_sum and depth == 0.
     """
-    df_filtered = df[(df['p'] + df['q'] == target_sum)]
+    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['depth'] == 0)]
     if df_filtered.empty:
-        print(f"No matching rows found for p + q = {target_sum} (pairwise comm plot). Skipping plot.")
+        print(f"No matching rows found for p + q = {target_sum}, depth == 0 (pairwise comm plot). Skipping plot.")
         return
 
-    # Compute the number of communication buffer splits
     df_filtered = df_filtered.copy()
     df_filtered['splits'] = 2 ** (df_filtered['q'] - df_filtered['s'])
 
     plt.figure(figsize=(6, 4))
 
-    # X-axis mapping for 2^p
     unique_p = sorted(df_filtered['p'].unique())
     x_mapping = {p: i for i, p in enumerate(unique_p)}
     x_labels = [str(2**p) for p in unique_p]
 
-    # Plot separate lines for each unique number of splits
     unique_splits = sorted(df_filtered['splits'].unique())
 
     for split_val in unique_splits:
@@ -151,7 +146,7 @@ def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
     ax.set_xticklabels(x_labels)
     ax.set_xlabel('Number of Processes (2^p)')
     ax.set_ylabel('Pairwise Communication Time (seconds)')
-    ax.set_title(f'Pairwise Communication Time vs Number of Processes\n(p + q = {target_sum})')
+    ax.set_title(f'Pairwise Communication Time vs Number of Processes\n(p + q = {target_sum}, depth = 0)')
     plt.legend(title='Comm. Buffer Splits')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
@@ -172,10 +167,10 @@ if __name__ == "__main__":
     figures_dir = sys.argv[2]
     data_dir = sys.argv[3]
 
-    columns = ['p', 'q', 's', 't_initial_sort', 't_comm_pairwise', 't_elbow_sort', 't_total']
-    df = pd.read_csv(log_file, sep=r'\s+', names=columns, engine='python')
+    # Add 'depth' column after 's'
+    columns = ['p', 'q', 's', 'depth', 't_initial_sort', 't_comm_pairwise', 't_elbow_sort', 't_total']
+    df = pd.read_csv(log_file, sep=r'\s+', names=columns, engine='python', skiprows=2)
 
-    # Now call each function with the full dataframe
     export_timing_percentages(df, data_dir, 27)
     plot_stacked_timing(df, figures_dir, 27)
     plot_total_time_vs_elements(df, figures_dir)

@@ -40,8 +40,12 @@ int main(int argc, char *argv[]) {
 
     TimingInfo time_info = get_timing_info();
     if (options.verbose && rank == 0) {
-        printf("Timing Information (p: %d, q: %d, s: %d)\n", p, q, s);
+        printf("Execution Information\n");
         printf("=========================\n");
+        printf("Number of processes: %d\n", n_procs);
+        printf("Elements per process: %d\n", n_data_proc);
+        printf("Communication buffer size: %d\n", buff_size);
+        printf("Number of threads per process for local sort: %d\n", 1 << options.depth);
         printf("Initial sort time: %lf seconds\n", time_info.t_initial_sort);
         printf("Pairwise communication time: %lf seconds\n", time_info.t_comm_pairwise);
         printf("Elbow sort time: %lf seconds\n", time_info.t_elbow_sort);

@@ -2,16 +2,14 @@
 #SBATCH --job-name=bitonic_benchmark
 #SBATCH --partition=rome
 #SBATCH --output=logs/slurm-%j.out
-#SBATCH --time=03:00:00
-#SBATCH --nodes=1
+#SBATCH --time=07:00:00
+#SBATCH --nodes=8
 #SBATCH --ntasks=128
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=4
 
 set -e  # Exit on error immediately
 
 export UCX_WARN_UNUSED_ENV_VARS=n
-
-echo "SLURM allocated $SLURM_JOB_NUM_NODES node(s)."
 
 # First command-line argument: project dir
 PROJECT_DIR="$1"
@@ -52,10 +50,16 @@ P_MAX=7
 Q_MIN=20
 Q_MAX=27
 
+log2_cpustask=$(awk -v n="$SLURM_CPUS_PER_TASK" 'BEGIN { print int(log(n)/log(2) + 0.5) }')
 
 # Ensure logs directory exists
 mkdir -p "$PROJECT_DIR/benchmarks/logs"
 rm -f "$LOG_FILE"
+
+# Store benchmark start time and SLURM environment variables
+echo "Benchmark started at $(date)" | tee -a "$LOG_FILE"
+echo "SLURM_NODES=$SLURM_JOB_NUM_NODES, SLURM_NTASKS=$SLURM_NTASKS, SLURM_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK" | tee -a "$LOG_FILE"
+
 
 # Check if bitonic sort executable exists
 if [ ! -f "$EXECUTABLE" ]; then
@@ -67,10 +71,17 @@ for p in $(seq $P_MIN $P_MAX); do
     procs=$((2 ** p))
     for q in $(seq $Q_MIN $Q_MAX); do
         for s in $(seq $q -1 $((q - 2))); do
+            for d in $(seq 0 $log2_cpustask); do
 
-            echo "Running bitonic sort with p=${p}, q=${q}, s=${s} ..."
+                # Set environment variables for the run
+                export OMP_NUM_THREADS=$((2 ** d))
 
-            srun -n "$procs" "$EXECUTABLE" "$p" "$q" "$s" --timing-file "$LOG_FILE"
+                # Log the run parameters
+                echo "Running bitonic sort with p=${p}, q=${q}, s=${s}, depth=${d} ..."
+
+                # Run the executable with srun
+                srun -n "$procs" "$EXECUTABLE" "$p" "$q" "$s" --depth "$d" --timing-file "$LOG_FILE"
+            done
         done
     done
 done

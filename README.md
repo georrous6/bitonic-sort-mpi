@@ -144,11 +144,9 @@ git clone https://github.com/georrous6/bitonic-sort-mpi.git
 ### Step 3: Submit Benchmark Job
 ```bash
 cd bitonic-sort-mpi
-sbatch --nodes=4 benchmarks/run_benchmarks.sh </path/to/bitonic-sort-mpi>
+sbatch benchmarks/run_benchmarks.sh </path/to/bitonic-sort-mpi>
 ```
 Replace `/path/to/bitonic-sort-mpi` with the installation path of the repository.
-
-Adjust the number of nodes based on the available HPC resources.
 
 You can check the status of the submitted job with
 ```bash
