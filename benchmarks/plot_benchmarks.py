@@ -23,7 +23,7 @@ def plot_stacked_timing(df, figures_dir, target_sum):
     x_mapping = {p: i for i, p in enumerate(unique_p)}
     x = df_filtered['p'].map(x_mapping)
 
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(9, 6))
     plt.bar(x, initial, label='Initial Sort', color='#4CAF50')
     plt.bar(x, pairwise, bottom=initial, label='Pairwise Comm', color='#2196F3')
     plt.bar(x, elbow, bottom=initial + pairwise, label='Elbow Sort', color='#FFC107')
@@ -37,7 +37,7 @@ def plot_stacked_timing(df, figures_dir, target_sum):
     ax.set_xlabel('Number of Processes (2^p)')
 
     plt.ylabel('Execution Time (seconds)')
-    plt.title(f'Timing Breakdown (Array Size = $2^{{{target_sum}}}$, s = q)')
+    plt.title(f'Timing Breakdown (Array Size = $2^{{{target_sum}}}$)')
     plt.legend()
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
@@ -92,7 +92,7 @@ def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
     df_filtered = df_filtered.copy()
     df_filtered['splits'] = 2 ** (df_filtered['q'] - df_filtered['s'])
 
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(9, 6))
 
     unique_p = sorted(df_filtered['p'].unique())
     x_mapping = {p: i for i, p in enumerate(unique_p)}
@@ -133,7 +133,7 @@ def plot_total_time_vs_procs_by_depth(df, figures_dir, target_sum):
         print(f"No matching rows found for p + q = {target_sum}, s == q (total time vs procs by depth). Skipping plot.")
         return
 
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(9, 6))
     unique_depths = sorted(df_filtered['depth'].unique())
     unique_p = sorted(df_filtered['p'].unique())
     x_mapping = {p: i for i, p in enumerate(unique_p)}
@@ -224,7 +224,7 @@ def plot_total_time_vs_procs_by_q(df, figures_dir):
         print("No matching rows found where s == q and depth == 0 (total time vs procs by q). Skipping plot.")
         return
 
-    plt.figure(figsize=(7, 5))
+    plt.figure(figsize=(9, 6))
 
     unique_q = sorted(df_filtered['q'].unique())
     unique_p = sorted(df_filtered['p'].unique())
@@ -254,6 +254,132 @@ def plot_total_time_vs_procs_by_q(df, figures_dir):
     print(f"Total time vs processes (by q) plot saved at {save_path}")
 
 
+def export_speedups_by_p(df, data_dir, output_filename='speedups_by_p.dat'):
+    """
+    Export a table of speedups by increasing p for fixed p+q sums.
+    Conditions: s == q and depth == 0.
+
+    Columns:
+    - 'sum': p + q
+    - Other columns: speedup for each p (relative to base p for the sum), or '-' if missing.
+    """
+    df_filtered = df[(df['s'] == df['q']) & (df['depth'] == 0)]
+    if df_filtered.empty:
+        print("No matching rows found where s == q and depth == 0 (speedups by p). Skipping export.")
+        return
+
+    # Group by p+q and compute speedups
+    df_filtered = df_filtered.copy()
+    df_filtered['sum'] = df_filtered['p'] + df_filtered['q']
+    grouped = df_filtered.groupby('sum')
+
+    all_p_vals = sorted(df_filtered['p'].unique())
+    col_headers = ['sum'] + [f'p={p}' for p in all_p_vals]
+
+    rows = []
+
+    for sum_val, group in grouped:
+        group = group.set_index('p')
+        p_vals = sorted(group.index.unique())
+        base_p = min(p_vals)
+        base_time = group.loc[base_p]['t_total']
+        row = [sum_val]
+
+        for p in all_p_vals:
+            if p in group.index:
+                speedup = base_time / group.loc[p]['t_total']
+                row.append(f"{speedup:.2f}")
+            else:
+                row.append('-')
+        rows.append(row)
+
+    # Save to file
+    os.makedirs(data_dir, exist_ok=True)
+    export_path = os.path.join(data_dir, output_filename)
+    with open(export_path, 'w') as f:
+        f.write('\t'.join(col_headers) + '\n')
+        for row in rows:
+            f.write('\t'.join(map(str, row)) + '\n')
+
+    print(f"Speedups by increasing p exported at {export_path}")
+
+
+def export_speedups_by_s(df, data_dir, target_sum, output_filename='speedups_by_s.dat'):
+    """
+    For each p where p + q == target_sum and depth == 0:
+    - Extract row with max s (s = q) as baseline.
+    - Compare pairwise comm time and total time to other s values (less than q).
+    - Export table:
+      p | pairwise_time_max_s | pairwise_speedup_s<q... | total_time_max_s | total_speedup_s<q...
+    """
+    df_filtered = df[(df['p'] + df['q'] == target_sum) & (df['depth'] == 0)]
+    if df_filtered.empty:
+        print(f"No matching rows found for p + q = {target_sum}, depth == 0 (speedups by s). Skipping export.")
+        return
+
+    grouped = df_filtered.groupby('p')
+    rows = []
+
+    # Determine all possible s values less than q (ordered descending)
+    all_s_diffs = sorted(
+        df_filtered[df_filtered['s'] != df_filtered['q']]['q'] - df_filtered[df_filtered['s'] != df_filtered['q']]['s']
+    )
+    all_s_diffs = sorted(set(all_s_diffs))  # To remove duplicates and sort
+    speedup_headers = [f'pairwise_speedup_s_minus_{d}' for d in all_s_diffs] + \
+                      [f'total_speedup_s_minus_{d}' for d in all_s_diffs]
+    headers = ['p', 'pairwise_time_max_s'] + speedup_headers[:len(all_s_diffs)] + \
+              ['total_time_max_s'] + speedup_headers[len(all_s_diffs):]
+
+    for p_val, group in grouped:
+        # Get row with max s = q
+        baseline_row = group[group['s'] == group['q']]
+        if baseline_row.empty:
+            continue  # Skip if no max s baseline
+
+        baseline_row = baseline_row.iloc[0]
+        baseline_pairwise = baseline_row['t_comm_pairwise']
+        baseline_total = baseline_row['t_total']
+        q_val = baseline_row['q']
+
+        row = [p_val, f"{baseline_pairwise:.6f}"]
+
+        # Compute pairwise speedups
+        for diff in all_s_diffs:
+            s_val = q_val - diff
+            alt_row = group[group['s'] == s_val]
+            if not alt_row.empty:
+                alt_row = alt_row.iloc[0]
+                speedup = baseline_pairwise / alt_row['t_comm_pairwise']
+                row.append(f"{speedup:.2f}")
+            else:
+                row.append('-')
+
+        row.append(f"{baseline_total:.6f}")
+
+        # Compute total speedups
+        for diff in all_s_diffs:
+            s_val = q_val - diff
+            alt_row = group[group['s'] == s_val]
+            if not alt_row.empty:
+                alt_row = alt_row.iloc[0]
+                speedup = baseline_total / alt_row['t_total']
+                row.append(f"{speedup:.2f}")
+            else:
+                row.append('-')
+
+        rows.append(row)
+
+    # Save to file
+    os.makedirs(data_dir, exist_ok=True)
+    export_path = os.path.join(data_dir, output_filename)
+    with open(export_path, 'w') as f:
+        f.write('\t'.join(headers) + '\n')
+        for row in rows:
+            f.write('\t'.join(map(str, row)) + '\n')
+
+    print(f"Speedups by decreasing s exported at {export_path}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("Usage: python plot_bitonic_timing.py <log_file_path> <figures_save_dir> <data_save_dir>")
@@ -273,3 +399,5 @@ if __name__ == "__main__":
     plot_total_time_vs_procs_by_depth(df, figures_dir, 27)
     export_speedups_vs_depth(df, data_dir, 27)
     plot_total_time_vs_procs_by_q(df, figures_dir)
+    export_speedups_by_p(df, data_dir)
+    export_speedups_by_s(df, data_dir, 27)
