@@ -5,7 +5,7 @@ import os
 import sys
 
 
-def plot_stacked_timing(df, figures_dir, target_sum):
+def plot_stacked_timing(df, figures_dir, target_sum, filename):
     """
     Plot stacked timing breakdown for rows where p + q == target_sum, s == q, and depth == 0.
     """
@@ -43,13 +43,13 @@ def plot_stacked_timing(df, figures_dir, target_sum):
     plt.tight_layout()
 
     os.makedirs(figures_dir, exist_ok=True)
-    save_path = os.path.join(figures_dir, 'stacked_timing.png')
+    save_path = os.path.join(figures_dir, filename)
     plt.savefig(save_path)
     plt.close()
     print(f"Stacked timing plot saved at {save_path}")
 
 
-def export_timing_percentages(df, data_dir, target_sum):
+def export_timing_percentages(df, data_dir, target_sum, filename):
     """
     Export timing percentages for rows where p + q == target_sum, s == q, and depth == 0.
     """
@@ -74,12 +74,12 @@ def export_timing_percentages(df, data_dir, target_sum):
     export_df = df_percent[export_columns]
 
     os.makedirs(data_dir, exist_ok=True)
-    export_path = os.path.join(data_dir, 'timing_percentages.dat')
+    export_path = os.path.join(data_dir, filename)
     export_df.to_csv(export_path, index=False, float_format='%.2f')
     print(f"Filtered timing percentages exported at {export_path}")
 
 
-def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
+def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum, filename):
     """
     Plot pairwise communication time vs number of processes (2^p) for different communication buffer splits (2^(q-s)).
     Only for rows where p + q == target_sum and depth == 0.
@@ -117,13 +117,13 @@ def plot_pairwise_comm_vs_procs(df, figures_dir, target_sum):
     plt.tight_layout()
 
     os.makedirs(figures_dir, exist_ok=True)
-    save_path = os.path.join(figures_dir, 'pairwise_comm_vs_procs_splits_sum.png')
+    save_path = os.path.join(figures_dir, filename)
     plt.savefig(save_path)
     plt.close()
     print(f"Pairwise communication time plot saved at {save_path}")
 
 
-def plot_total_time_vs_procs_by_depth(df, figures_dir, target_sum):
+def plot_total_time_vs_procs_by_depth(df, figures_dir, target_sum, filename):
     """
     Plot total execution time vs number of processes (2^p) for different depth values,
     filtered by p + q == target_sum and s == q.
@@ -150,19 +150,19 @@ def plot_total_time_vs_procs_by_depth(df, figures_dir, target_sum):
     ax.set_xticklabels(x_labels)
     ax.set_xlabel('Number of Processes (2^p)')
     ax.set_ylabel('Total Execution Time (seconds)')
-    ax.set_title(f'Total Time vs Number of Processes\n(p + q = {target_sum}, s = q)')
+    ax.set_title(f'Total Time vs Number of Processes\n(Array size: 2^(p + q) = 2^{target_sum})')
     plt.legend(title='Depth')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
 
     os.makedirs(figures_dir, exist_ok=True)
-    save_path = os.path.join(figures_dir, 'total_time_vs_procs_by_depth.png')
+    save_path = os.path.join(figures_dir, filename)
     plt.savefig(save_path)
     plt.close()
     print(f"Total time vs processes (by depth) plot saved at {save_path}")
 
 
-def export_speedups_vs_depth(df, data_dir, target_sum):
+def export_speedups_vs_depth(df, data_dir, target_sum, filename):
     """
     Export a table with columns:
     p, q, initial_speedup_depth1, total_speedup_depth1, initial_speedup_depth2, total_speedup_depth2
@@ -209,12 +209,12 @@ def export_speedups_vs_depth(df, data_dir, target_sum):
     export_df = pd.DataFrame(rows)
 
     os.makedirs(data_dir, exist_ok=True)
-    export_path = os.path.join(data_dir, 'speedups_vs_depth.dat')
+    export_path = os.path.join(data_dir, filename)
     export_df.to_csv(export_path, index=False, float_format='%.2f')
     print(f"Speedups table (depth 1 & 2) exported at {export_path}")
 
 
-def plot_total_time_vs_procs_by_q(df, figures_dir):
+def plot_total_time_vs_procs_by_q(df, figures_dir, filename):
     """
     Plot total execution time vs number of processes (2^p) for different q values,
     filtered by s == q and depth == 0.
@@ -243,18 +243,18 @@ def plot_total_time_vs_procs_by_q(df, figures_dir):
     ax.set_ylabel('Total Execution Time (seconds, log2 scale)')
     ax.set_yscale('log', base=2)
     plt.title('Total Execution Time vs Number of Processes by q\n(s = q, depth = 0)')
-    plt.legend(title='q values')
+    plt.legend(title='q values', loc='lower right')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
 
     os.makedirs(figures_dir, exist_ok=True)
-    save_path = os.path.join(figures_dir, 'total_time_vs_procs_by_q.png')
+    save_path = os.path.join(figures_dir, filename)
     plt.savefig(save_path)
     plt.close()
     print(f"Total time vs processes (by q) plot saved at {save_path}")
 
 
-def export_speedups_by_p(df, data_dir, output_filename='speedups_by_p.dat'):
+def export_speedups_by_p(df, data_dir, filename):
     """
     Export a table of speedups by increasing p for fixed p+q sums.
     Conditions: s == q and depth == 0.
@@ -295,7 +295,7 @@ def export_speedups_by_p(df, data_dir, output_filename='speedups_by_p.dat'):
 
     # Save to file
     os.makedirs(data_dir, exist_ok=True)
-    export_path = os.path.join(data_dir, output_filename)
+    export_path = os.path.join(data_dir, filename)
     with open(export_path, 'w') as f:
         f.write('\t'.join(col_headers) + '\n')
         for row in rows:
@@ -393,11 +393,11 @@ if __name__ == "__main__":
     columns = ['p', 'q', 's', 'depth', 't_initial_sort', 't_comm_pairwise', 't_elbow_sort', 't_total']
     df = pd.read_csv(log_file, sep=r'\s+', names=columns, engine='python', skiprows=2)
 
-    export_timing_percentages(df, data_dir, 27)
-    plot_stacked_timing(df, figures_dir, 27)
-    plot_pairwise_comm_vs_procs(df, figures_dir, 27)
-    plot_total_time_vs_procs_by_depth(df, figures_dir, 27)
-    export_speedups_vs_depth(df, data_dir, 27)
-    plot_total_time_vs_procs_by_q(df, figures_dir)
-    export_speedups_by_p(df, data_dir)
-    export_speedups_by_s(df, data_dir, 27)
+    export_timing_percentages(df, data_dir, 27, 'time_breakdown.dat')
+    plot_stacked_timing(df, figures_dir, 27, 'time_breakdown.png')
+    plot_pairwise_comm_vs_procs(df, figures_dir, 27, 'pairwise_comm_vs_procs.png')
+    plot_total_time_vs_procs_by_depth(df, figures_dir, 27, 'total_time_vs_procs_by_depth.png')
+    export_speedups_vs_depth(df, data_dir, 27, 'speedups_vs_depth.dat')
+    plot_total_time_vs_procs_by_q(df, figures_dir, 'total_time_vs_procs_by_q.png')
+    export_speedups_by_p(df, data_dir, 'speedups_by_p.dat')
+    export_speedups_by_s(df, data_dir, 27, 'speedups_by_s.dat')

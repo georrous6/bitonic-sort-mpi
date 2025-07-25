@@ -86,7 +86,7 @@ for p in $(seq $P_MIN $P_MAX); do
     done
 done
 
-python3 "$PROJECT_DIR/benchmarks/plot_benchmarks.py" "$LOG_FILE" "$FIGURES_DIR" "$DATA_DIR"
+python3 "$PROJECT_DIR/benchmarks/export_benchmark_results.py" "$LOG_FILE" "$FIGURES_DIR" "$DATA_DIR"
 deactivate
 
 echo "All benchmarks completed successfully."
