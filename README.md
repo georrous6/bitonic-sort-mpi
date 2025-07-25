@@ -3,9 +3,9 @@
 ![Build](https://github.com/georrous6/bitonic-sort-mpi/actions/workflows/build.yml/badge.svg)
 ![Tests](https://github.com/georrous6/bitonic-sort-mpi/actions/workflows/test.yml/badge.svg)
 
-This project implements a **distributed hybrid sort using Bitonic interchanges**, leveraging 
-**MPI (Message Passing Interface)** for inter-process communication. The project includes automated 
-benchmarking and performance visualization, executed on the **Aristotelis HPC Cluster** of **ECE AUTH**.
+This project implements a **distributed hybrid sorting algorithm based on Bitonic Sort**, using **MPI** 
+for inter-process communication and **OpenMP** for intra-process parallelism. It supports automated benchmarking 
+and performance visualization on the **Aristotelis HPC Cluster** at **ECE AUTH**.
 
 ---
 
@@ -19,40 +19,40 @@ benchmarking and performance visualization, executed on the **Aristotelis HPC Cl
   - [Build the Program](#build-the-program)
   - [Run the Program](#run-the-program)
   - [Run Tests](#run-tests)
-- [Execution Time Breakdown](#execution-time-breakdown)
 - [Run Benchmarks (on Aristotelis HPC)](#run-benchmarks-on-aristotelis-hpc)
-  - [Step 1: Connect to Aristotelis HPC](#step-1-connect-to-aristotelis-hpc)
-  - [Step 2: Upload Project](#step-2-upload-project)
-  - [Step 3: Submit Benchmark Job](#step-3-submit-benchmark-job)
+- [Benchmark Results](#benchmark-results)
+  - [Execution Time Breakdown](#execution-time-breakdown)
+  - [OpenMP Parallelization](#openmp-parallelization)
 - [Acknowledgments](#acknowledgments)
 
 ---
 
 ## Problem Overview
 
-The goal is to **sort `N = 2^(p + q)` integers in ascending order**, distributed among 
-**`2^p` MPI processes**. Each process is initialized with **`2^q` random integers**. 
-The Bitonic Sort algorithm guides the data exchange between processes using non-blocking 
-MPI communication.
+The objective is to **sort `N = 2^(p + q)` integers in ascending order**, distributed across 
+**`2^p` MPI processes**, with each process holding **`2^q` elements**. The algorithm uses **Bitonic Sort** 
+for orchestrating inter-process communication, enhanced with **OpenMP** to accelerate local sorting.
 
-### Algorithm Summary:
-- Each process **locally sorts** its data (ascending or descending based on rank parity).
-- Processes **communicate in pairs** according to **Bitonic Sort stages** using non-blocking sends 
-and receives.
-- A **pairwise min-max exchange** is applied to move smaller elements towards lower ranks and larger 
-elements towards higher ranks.
-- After multiple log-scaled iterations, each process applies a **final elbow sort** to achieve a
-globally sorted order.
-- The result is **validated** using serial sorting for correctness.
+### Algorithm Summary
+
+- Each process performs an **initial local sort** using `qsort()` or parallel OpenMP-based merge sort (if enabled).
+- Processes exchange data in **logarithmic Bitonic stages** using **non-blocking MPI** communication.
+- At each stage, processes conduct **pairwise min-max exchanges** to form Bitonic sequences.
+- A final **elbow sort** ensures full global ordering.
+- Correctness is verified by comparing with a serially sorted version of the input.
 
 ---
 
 ## Requirements
-- **MPI implementation** (e.g., OpenMPI, MPICH)
-- **Python 3** (with `pandas`, `numpy` and `matplotlib`)
-- **Slurm workload manager** (for submitting jobs on Aristotelis)
+
+- MPI implementation (e.g., OpenMPI, MPICH)
+- Python 3 (with `pandas`, `numpy`, `matplotlib`)
+- Slurm workload manager (for HPC usage)
+
+---
 
 ## Project Structure
+
 - **`.github`**: CI/CD pipelines (GitHub Actions)
 - **`.vscode`**: VSCode development configuration
 - **`benchmarks`**: Benchmarking scripts and logs
@@ -61,99 +61,136 @@ globally sorted order.
 - **`scr`**: Source code
 - **`tests`**: Unit tests and validation scripts
 
+
+---
+
 ## Setup Locally
 
-Clone this repository
+### Clone the Repository
+
 ```bash
 git clone https://github.com/georrous6/bitonic-sort-mpi.git
 cd bitonic-sort-mpi
 ```
 
 ### Build the Program
-Build the project using `make`:
+
 ```bash
 make
 ```
 
 ### Run the Program
-Execute the program locally with `mpirun`
+
 ```bash
 cd build
 mpirun -np <nprocs> bitonic_sort <p> <q> <s> [options]
 ```
-**Positional Arguments**
-- `nprocs`: The number of MPI processes
-- `p`: Binary logarithm of the number of MPI processes (`nprocs = 2^p`)
-- `q`: Binary logarithm of the number of elements per process
-- `2^s`: Binary logarithm of the communication buffer size (`s <= q`)
 
-**Optional Flags**
-- `--verbose`: Print detailed execution info (e.g., timing, memory usage)
-- `--no-validation`: Skip correctness verification of the sorted output
-- `--timing-file <file>`: Output timing metrics to the specified file
-- `--depth <depth>`: Number of OpenMP parallel sections used for local sorting
-(`ntreads = 2^depth`)
+#### Positional Arguments
+
+- `<nprocs>`: Number of MPI processes
+- `<p>`: Such that `nprocs = 2^p`
+- `<q>`: Number of elements per process is `2^q`
+- `<s>`: Communication buffer size exponent (usually `s ≤ q`)
+
+#### Optional Flags
+
+- `--verbose`: Print detailed logs (e.g., timings, validation)
+- `--no-validation`: Skip correctness verification
+- `--timing-file <path>`: Export timing stats to CSV
+- `--depth <d>`: Use `2^d` OpenMP threads per process for local sorting
+
+> Set the number of OpenMP threads with:
+> ```bash
+> export OMP_NUM_THREADS=<2^d>
+> ```
+
+---
 
 ### Run Tests
-To run the tests type
+
 ```bash
 cd tests
 chmod +x run_tests.sh
 ./run_tests.sh
 ```
 
-## Execution Time Breakdown
-
-| **p** | **q**  | **Initial Sort (%)** | **Pairwise Comm (%)** | **Elbow Sort (%)** | **Other (%)** |
-|-------|--------|----------------------|-----------------------|--------------------|---------------|
-|   0   |   27   |     **100.00**       |        0.00           |         0.00       |   0.00        |
-|   1   |   26   |     **92.82**        |        2.60           |         4.57       |   0.01        |
-|   2   |   25   |     **81.74**        |        6.50           |        11.76       |   0.01        |
-|   3   |   24   |     **70.68**        |       12.17           |        17.14       |   0.01        |
-|   4   |   23   |     **59.46**        |       19.91           |        20.62       |   0.01        |
-|   5   |   22   |     **47.80**        |       30.54           |        21.63       |   0.03        |
-|   6   |   21   |     **39.51**        |       37.67           |        22.78       |   0.04        |
-|   7   |   20   |     30.06            |        **49.95**      |        19.92       |   0.07        |
-
-![Time Breakdown](docs/figures/time_breakdown.png)
+---
 
 ## Run Benchmarks (on Aristotelis HPC)
-To run the benchmarks you must have access the the Aristotelis HPC Cluster.
 
-### Step 1: Connect to Aristoteis HPC
-Connect to Aristotelis HPC Cluster via ssh:
+### 1. Connect to the Cluster
+
 ```bash
 ssh [username]@aristotle.it.auth.gr
 ```
-Replace `username` with your institutional username.
 
-### Step 2: Upload Project
-You can either:
+### 2. Upload or Clone the Project
 
-- **Upload locally cloned project:**
+**Option A:** Upload your local project
+
 ```bash
-scp -r bitonic-sort-mpi/ [username]@aristotle.it.auth.gr:path/to/destination/
+scp -r bitonic-sort-mpi/ [username]@aristotle.it.auth.gr:/desired/path/
 ```
-Replace `username` with your institutional username and `path/to/destination` to the desired destination.
 
-- **Or clone directly on Aristotelis:**
+**Option B:** Clone from GitHub
+
 ```bash
 git clone https://github.com/georrous6/bitonic-sort-mpi.git
 ```
 
-### Step 3: Submit Benchmark Job
+### 3. Submit Benchmark Job
+
 ```bash
 cd bitonic-sort-mpi
-sbatch benchmarks/run_benchmarks.sh </path/to/bitonic-sort-mpi>
+sbatch benchmarks/run_benchmarks.sh /path/to/bitonic-sort-mpi
 ```
-Replace `/path/to/bitonic-sort-mpi` with the installation path of the repository.
 
-You can check the status of the submitted job with
+Monitor your job:
 ```bash
 squeue -u $USER
 ```
 
+---
+
+## Benchmark Results
+
+### Execution Time Breakdown
+
+| **p** | **q** | **Initial Sort (%)** | **Pairwise Comm (%)** | **Elbow Sort (%)** | **Other (%)** |
+|------:|------:|----------------------:|------------------------:|--------------------:|---------------:|
+| 0     | 27    | 100.00               | 0.00                   | 0.00               | 0.00           |
+| 1     | 26    | 92.82                | 2.60                   | 4.57               | 0.01           |
+| 2     | 25    | 81.74                | 6.50                   | 11.76              | 0.01           |
+| 3     | 24    | 70.68                | 12.17                  | 17.14              | 0.01           |
+| 4     | 23    | 59.46                | 19.91                  | 20.62              | 0.01           |
+| 5     | 22    | 47.80                | 30.54                  | 21.63              | 0.03           |
+| 6     | 21    | 39.51                | 37.67                  | 22.78              | 0.04           |
+| 7     | 20    | 30.06                | 49.95                  | 19.92              | 0.07           |
+
+![Time Breakdown](docs/figures/time_breakdown.png)
+
+---
+
+### OpenMP Parallelization
+
+| **Processes** | **Speedup (Depth 1)** |                       | **Speedup (Depth 2)** |                       |
+|---------------|-----------------------|-----------------------|------------------------|-----------------------|
+|               | Initial Sort          | Total Time            | Initial Sort           | Total Time            |
+| 1             | 1.83                  | 1.83                  | 1.84                   | 1.84                  |
+| 2             | 1.92                  | 1.82                  | 1.93                   | 1.83                  |
+| 4             | 1.92                  | 1.65                  | 1.79                   | 1.55                  |
+| 8             | 1.88                  | 1.51                  | 1.86                   | 1.51                  |
+| 16            | 1.82                  | 1.37                  | 1.84                   | 1.38                  |
+| 32            | 1.80                  | 1.31                  | 1.79                   | 1.30                  |
+| 64            | 1.77                  | 1.21                  | 1.72                   | 1.20                  |
+| 128           | 1.66                  | 1.14                  | 1.59                   | 1.12                  |
+
+![OpenMP Speedup](docs/figures/total_time_vs_procs_by_depth.png)
+
+---
+
 ## Acknowledgments
 
-The experiments presented in this work were conducted using the Aristotelis HPC cluster at Aristotle 
-University of Thessaloniki (AUTH).
+This project was developed as part of the course **Parallel and Distributed Computer Systems** at the Department of
+ Electrical and Computer Engineering, AUTH. Experiments were conducted using the **Aristotelis HPC Cluster**.
