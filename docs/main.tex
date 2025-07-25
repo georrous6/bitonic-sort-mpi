@@ -1,12 +1,13 @@
 \documentclass{article}
-\usepackage[a4paper, top=2cm, bottom=2cm, left=3.5cm, right=3.5cm]{geometry}
+\usepackage[a4paper, top=2cm, bottom=2cm, left=3cm, right=3cm]{geometry}
 \usepackage{graphicx} % Required for inserting images
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{amsmath}
+\usepackage{multirow}
 
 \title{Hybrid Distributed Sort with Bitonic Interchanges}
-\author{Georgios Rousomanis \\
+\author{Georgios Rousomanis (10703)\\
 Department of Electrical and Computer Engineering \\
 Aristotle University of Thessaloniki \\
 \texttt{rousoman@ece.auth.gr}}
@@ -17,25 +18,19 @@ Aristotle University of Thessaloniki \\
 
 \maketitle
 
-\section{Introduction}
+\section*{Introduction}
 
-Sorting is one of the most fundamental operations in computer science, with broad applications in data 
-processing, scientific computing, and distributed systems. As dataset sizes continue to grow, leveraging 
-parallel and distributed architectures becomes essential to achieve performance and scalability. 
-Bitonic Sort is a well-known comparison-based sorting algorithm that is especially amenable to 
-parallelization due to its regular structure and predictable communication pattern.
+Sorting large datasets efficiently in distributed memory environments is a fundamental problem in parallel 
+computing. This report presents an implementation of a distributed sorting algorithm based on the Bitonic sort 
+paradigm, leveraging MPI for inter-process communication. The total input array of size $N = 2^{p+q}$ is 
+partitioned across $2^p$ processes, each handling $2^q$ integers locally. The sorting proceeds through an 
+initial local sort phase followed by iterative bitonic merging stages involving structured data exchanges 
+between processes. Our implementation also incorporates optimizations such as non-blocking communication 
+with buffer splitting and OpenMP-based parallelism within each process to accelerate local sorting. 
+Performance evaluation on the Aristotelis HPC cluster examines the scalability and speedup characteristics 
+across varying numbers of processes and input sizes, providing insights into the algorithm’s behavior and 
+bottlenecks.
 
-This project focuses on the implementation and benchmarking of a hybrid distributed sorting algorithm that 
-employs Bitonic Sort for inter-process sorting. The dataset to be sorted consists of $N = 2^{p+q}$ integers,
-distributed across $2^p$ MPI processes. Each process receives a chunk of $2^q$ elements. The algorithm first 
-performs a local sort and then enters a series of bitonic merging phases that involve both local and 
-inter-process communication steps.
-
-The goal of this work is to evaluate the performance of the parallel Bitonic Sort implementation under various 
-configurations. We study how execution time and communication cost scale with the number of processes, data size, 
-and the degree of communication granularity controlled by the parameter $s$, which represents the buffer splitting
-depth. Benchmarks are conducted on a high-performance computing cluster, and results are visualized to identify 
-performance trends and bottlenecks.
 
 \section{Algorithm Overview}
 
@@ -129,112 +124,280 @@ This design ensures bandwidth-efficient data exchange while preserving the requi
 correct merges at each stage. Global consistency is maintained via barriers that synchronize all processes 
 before moving to the next stage of the algorithm.
 
+\section{Validation of the Sorting Algorithm}
+
+To ensure correctness of the distributed bitonic sort implementation, a validation function 
+is executed after the sorting completes. The validation performs two key checks:
+
+\begin{enumerate}
+    \item \textbf{Local Sorted Order:} Each process verifies that its local data chunk is sorted 
+    in non-decreasing order. This is done by asserting that every element is less than or equal to 
+    its successor within the local array.
+    
+    \item \textbf{Global Sorted Order at Process Boundaries:} Since the global sorted order spans 
+    all processes, the algorithm must confirm the order between adjacent processes. Each process, 
+    except the last, sends its last (maximum) element asynchronously to the next higher-ranked process. 
+    Each process, except the first, receives the last element from the preceding process and asserts 
+    that this received value is less than or equal to its own first (minimum) element.
+\end{enumerate}
+
+This two-level validation ensures that the data is correctly sorted both locally within each process 
+and globally across the distributed dataset. Any violation triggers an assertion failure, signaling 
+an error in the sorting or communication phases.
+
 \section{Performance Overview}
 
-All benchmarks were conducted on the Aristotelis HPC cluster using 8 compute nodes. This section presents a 
-detailed breakdown of the algorithm's execution time and identifies bottlenecks that motivate optimization 
-efforts.
+This section provides an overview of the performance characteristics of the distributed bitonic sort algorithm,
+focusing on how it scales with the number of processes and the size of the input array. We examine both the 
+speedup achieved through parallelization and the scalability of total execution time across different 
+configurations.
+
+\subsection{Speedup by Number of Processes}
+
+Table~\ref{tab:speedup_by_procs} illustrates the speedup achieved by increasing the number of processes for 
+various total array sizes, where the size is given by $2^{p + q}$. Each row corresponds to a fixed array size, 
+and each column indicates the number of processes used ($2^p$). The first valid value of each row (always $1.00$)
+represents the baseline execution time. The subsequent values in the row show the speedup achieved by distributing
+the workload across $2^p$ processes.
+
+Across all array sizes, a consistent pattern emerges: the first duplication of the number of processes typically
+results in a near $2\times$ speedup, indicating efficient initial parallelization. However, as the number of 
+processes increases further, the incremental speedup diminishes. This is attributed to communication overheads 
+and synchronization delays introduced during pairwise exchanges and elbow sorting steps of the bitonic sort 
+algorithm.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{$p + q$} & \textbf{$p=0$} & \textbf{$p=1$} & \textbf{$p=2$} & \textbf{$p=3$} & 
+\textbf{$p=4$} & \textbf{$p=5$} & \textbf{$p=6$} & \textbf{$p=7$} \\
+\hline
+20 & 1.00 & -    & -    & -    & -    & -    & -    & -    \\
+21 & 1.00 & 1.64 & -    & -    & -    & -    & -    & -    \\
+22 & 1.00 & 1.89 & 3.16 & -    & -    & -    & -    & -    \\
+23 & 1.00 & 1.80 & 3.29 & 5.59 & -    & -    & -    & -    \\
+24 & 1.00 & 1.98 & 3.60 & 6.17 & 10.28 & -   & -    & -    \\
+25 & 1.00 & 1.92 & 3.26 & 5.90 & 10.22 & 16.60 & - & -    \\
+26 & 1.00 & 1.97 & 3.53 & 6.28 & 10.26 & 17.49 & 29.26 & - \\
+27 & 1.00 & 1.81 & 3.37 & 5.94 & 10.44 & 17.14 & 29.87 & 44.78 \\
+28 & -    & 1.00 & 1.84 & 3.20 & 5.54  & 9.84  & 16.27 & 24.72 \\
+29 & -    & -    & 1.00 & 1.79 & 3.09  & 5.47  & 9.15  & 13.97 \\
+30 & -    & -    & -    & 1.00 & 1.76  & 2.92  & 5.05  & 7.95  \\
+31 & -    & -    & -    & -    & 1.00  & 1.72  & 2.91  & 4.57  \\
+32 & -    & -    & -    & -    & -     & 1.00  & 1.71  & 2.68  \\
+33 & -    & -    & -    & -    & -     & -     & 1.00  & 1.58  \\
+34 & -    & -    & -    & -    & -     & -     & -     & 1.00  \\
+\hline
+\end{tabular}
+\caption{Speedup achieved by increasing the number of processes for various total array sizes ($2^{p+q}$).}
+\label{tab:speedup_by_procs}
+\end{table}
+
+\subsection{Scalability with Global Array Size}
+
+Figure~\ref{fig:total_time_vs_procs_by_q} shows how the total execution time scales with the total number of 
+elements $2^{p+q}$, while keeping the number of elements per process constant at $2^q$. This effectively 
+evaluates strong scaling by holding the local problem size fixed and increasing the total problem size and 
+number of processes proportionally.
+
+We observe that although execution time increases as the global array grows, the rate of increase is 
+significantly sublinear, indicating effective parallel scaling. This is because more processes are 
+recruited to handle the growing workload, reducing the per-process computational burden. However, 
+the increase in total execution time is not negligible, due to factors such as inter-process communication 
+and global coordination required by the bitonic merge steps.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\linewidth]{figures/total_time_vs_procs_by_q.png}
+    \caption{Total execution time vs.\ number of processes (or global size $2^{p+q}$) for fixed per-process 
+    size $2^q$.}
+    \label{fig:total_time_vs_procs_by_q}
+\end{figure}
+
+
+\section{Optimization of the Algorithm}
 
 \subsection{Time Breakdown}
 
-Before applying any optimizations, we first analyze how the total execution time is distributed across the 
-different stages of the algorithm. Figure~\ref{fig:stacked_timing} shows the execution time versus the number of 
-processes $2^p$, for a total input size of $2^{p+q} = 2^{27}$ integers. In this setup, the communication buffer 
-is not split ($s = q$).
+Before applying any optimizations, we analyzed how the total execution time is distributed across the 
+different stages of the algorithm. Benchmarks were conducted on the Aristotelis HPC cluster using 8 
+compute nodes. Figure~\ref{fig:time_breakdown} presents the execution time versus the number of processes 
+$2^p$, for a fixed total input size of $2^{p+q} = 2^{27}$ integers.
 
-We observe that when the number of processes is small, the majority of time is spent on the \textit{initial sort}
-phase. However, as the number of processes increases, the cost of \textit{pairwise communication} grows 
-substantially and eventually dominates total execution time once $2^p \geq 64$. This trend is also evident in 
-Table~\ref{tab:time_breakdown}. Despite this, distributing the workload still leads to a significant reduction in 
-overall runtime.
+We observe that for small process counts, the majority of execution time is spent on the \textit{initial sort} 
+phase, which is performed locally on each process. As the number of processes increases, however, the cost of 
+\textit{pairwise communication} grows significantly and eventually becomes the dominant factor, especially when 
+$2^p = 128$. This trend is also reflected in Table~\ref{tab:time_breakdown}, which shows the percentage breakdown 
+of time spent in each stage.
+
+As already mentioned, doubling the number of processes from 1 to 2 results in a near-perfect speedup due to 
+effective parallelization of the local sorting phase. However, further doubling leads to diminishing returns. 
+This is because the computational load per process decreases, while communication overhead becomes increasingly
+significant. Additionally, the complexity of synchronization and data exchange across many processes further 
+hampers scalability.
 
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{figures/stacked_timing.png}
-    \caption{Execution time breakdown per stage for total size $2^{27}$ with no buffer splitting ($s = q$).}
-    \label{fig:stacked_timing}
+    \includegraphics[width=1\linewidth]{figures/time_breakdown.png}
+    \caption{Execution time breakdown per stage for total size $2^{27}$}
+    \label{fig:time_breakdown}
 \end{figure}
 
 \begin{table}[h]
 \centering
-\caption{Execution Time Breakdown by Stage (total size: $2^{p+q} = 2^{27},\, s = q$)}
-\label{tab:time_breakdown}
-\begin{tabular}{|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|}
 \hline
-\textbf{p} & \textbf{q} & \textbf{Initial Sort (\%)} & \textbf{Pairwise Sort (\%)} & 
+\textbf{Processes} & \textbf{Initial Sort (\%)} & \textbf{Pairwise Sort (\%)} & 
 \textbf{Elbow Sort (\%)} & \textbf{Other (\%)} \\
 \hline
-0 & 27 & \textbf{100.00} & 0.00 & 0.00 & 0.00 \\
-1 & 26 & \textbf{92.79} & 2.54 & 4.66 & 0.01 \\
-2 & 25 & \textbf{81.27} & 6.79 & 11.93 & 0.01 \\
-3 & 24 & \textbf{69.53} & 12.42 & 18.04 & 0.01 \\
-4 & 23 & \textbf{58.09} & 21.84 & 20.06 & 0.02 \\
-5 & 22 & \textbf{43.02} & 35.50 & 21.45 & 0.03 \\
-6 & 21 & 29.92 & \textbf{50.97} & 19.08 & 0.03 \\
-7 & 20 & 17.07 & \textbf{66.08} & 16.81 & 0.05 \\
+1 & \textbf{100.00} & 0.00 & 0.00 & 0.00 \\
+2 & \textbf{92.82} & 2.60 & 4.57 & 0.01 \\
+4 & \textbf{81.74} & 6.50 & 11.76 & 0.01 \\
+8 & \textbf{70.68} & 12.17 & 17.14 & 0.01 \\
+16 & \textbf{59.46} & 19.91 & 20.62 & 0.01 \\
+32 & \textbf{47.80} & 30.54 & 21.63 & 0.03 \\
+64 & \textbf{39.51} & 37.67 & 22.78 & 0.04 \\
+128 & 30.06 & \textbf{49.95} & 19.92 & 0.07 \\
 \hline
 \end{tabular}
+\caption{Execution Time Breakdown (total size: $2^{p+q} = 2^{27}$)}
+\label{tab:time_breakdown}
 \end{table}
 
 \subsection{Optimizing Pairwise Communication}
 
-As shown in the previous subsection, \textit{pairwise communication} becomes the dominant performance bottleneck 
-for large process counts. To mitigate this overhead, we experimented with splitting the communication buffer into
-smaller batches. This technique aims to overlap communication with computation and improve scalability.
+As illustrated in the previous subsection, \textit{pairwise communication} emerges as the primary bottleneck 
+for large process counts. To address this, we experimented with splitting the communication buffer into smaller
+segments. The goal of this strategy is to overlap communication with computation and enhance performance 
+scalability.
 
-Figure~\ref{fig:pairwise_comm_vs_procs_splits_sum} shows the impact of different buffer split configurations, 
-defined by $B = 2^{q-s}$, on the pairwise communication time. We observe that buffer splitting reduces 
-communication time slightly for moderate process counts. However, when the number of processes becomes too large,
-splitting becomes counterproductive -- particularly when $p$ is large and $q$ is small, resulting in limited data 
-per process. In such cases, the overhead of managing multiple small transfers outweighs any benefits from overlap.
+Figure~\ref{fig:pairwise_comm_vs_procs} presents the pairwise communication time as a function of the number of
+processes for various buffer split configurations, where the number of segments is given by $B = 2^{q-s}$. 
+Splitting the communication buffer into two parts consistently improves communication performance across all 
+process counts. However, further splitting into four segments does not provide additional benefit.
 
-Therefore, while buffer splitting can be marginally beneficial in some configurations, it is not sufficient to 
-scale communication performance at large process counts. This observation motivates further work toward optimizing
-\textit{local sorting}, which increasingly dominates as communication optimizations saturate.
+An interesting pattern emerges in Figure~\ref{fig:pairwise_comm_vs_procs}. The pairwise communication time 
+peaks when the number of processes equals the number of compute nodes (8). This configuration forces each 
+process to run on a separate node, resulting in all communication being inter-node and hence more expensive 
+due to reliance on the network interface. As we increase the number of processes beyond 8, multiple processes 
+begin to share the same node. This leads to more intra-node communication, which is significantly faster than 
+inter-node communication, thereby reducing the total communication cost.
+
+Table~\ref{tab:speedups_by_splits} summarizes the speedup in pairwise communication and total execution time 
+when using two and four buffer splits, relative to the baseline configuration ($s = q$). The maximum speedup 
+observed for communication is about 33\%, while for total execution time, it does not exceed 8\%. Additionally,
+speedup diminishes as the number of processes increases. This is because the overhead from communication and 
+synchronization grows, while the benefits of buffer splitting plateau.
+
+In conclusion, while buffer splitting offers some performance improvements in specific configurations, it alone
+is insufficient to achieve scalability at high process counts. These findings suggest that further optimizations
+should focus on reducing the local sorting overhead, which becomes increasingly dominant as communication 
+efficiency saturates.
 
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{figures/pairwise_comm_vs_procs_splits_sum.png}
+    \includegraphics[width=1\linewidth]{figures/pairwise_comm_vs_procs.png}
     \caption{Pairwise communication time vs number of processes for varying communication buffer splits 
     ($B = 2^{q-s}$).}
-    \label{fig:pairwise_comm_vs_procs_splits_sum}
+    \label{fig:pairwise_comm_vs_procs}
 \end{figure}
 
-\subsection{Scalability with Respect to Total Data Size}
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Processes}} & \multicolumn{2}{c|}{\textbf{Comm Speedup}} & 
+\multicolumn{2}{c|}{\textbf{Total Speedup}} \\
+\cline{2-5}
+ & \textbf{splits: 2} & \textbf{splits: 4} & \textbf{splits: 2} & \textbf{splits: 4} \\
+\hline
+2   & 1.30 & 1.33 & 1.06 & 1.07 \\
+4   & 1.11 & 1.10 & 1.03 & 1.01 \\
+8   & 1.14 & 1.12 & 1.03 & 1.03 \\
+16  & 1.06 & 1.08 & 1.04 & 1.04 \\
+32  & 1.21 & 1.22 & 1.08 & 1.07 \\
+64  & 1.10 & 1.13 & 1.04 & 1.04 \\
+128 & 1.11 & 1.05 & 1.05 & 1.02 \\
+\hline
+\end{tabular}
+\caption{Speedup of communication and total execution time for different split counts relative to the baseline 
+($s = q$)}
+\label{tab:speedups_by_splits}
+\end{table}
 
-Finally, Fig.~\ref{fig:total_time_vs_elements} presents the total execution time as a function of the 
-total array size for all tested configurations of $p$ and $q$. For each array size $2^{p+q}$, we observe
-that increasing the number of processes leads to a consistent reduction in execution time. This clearly 
-demonstrates the effectiveness of the parallelization strategy in improving performance as the problem 
-size scales.
+\subsection{Optimizing Local Sorting}
+
+As previously discussed, local sorting constitutes the primary performance bottleneck, particularly when the 
+number of processes is small. To mitigate this overhead, we implemented a parallel local sorting routine using 
+OpenMP. This optimization aims to exploit multicore parallelism within each process, significantly accelerating 
+the initial sorting phase while keeping the implementation relatively simple and portable.
+
+The implemented approach is based on a parallel merge sort algorithm. It recursively splits the array into 
+subarrays and sorts them concurrently using OpenMP threads. Once the subarray size is small enough or the 
+recursion depth becomes too large, the algorithm falls back to a serial sort. This hybrid strategy balances 
+parallel performance with overhead control, ensuring efficiency across a wide range of input sizes and system 
+architectures. The implementation also supports both ascending and descending ordering to remain compatible 
+with the alternating sorting stages required by bitonic sort.
+
+Table~\ref{tab:omp_speedup} and Figure~\ref{fig:total_time_vs_procs_by_depth} present the performance benefits 
+of applying OpenMP-based parallelism to the local sorting phase in our distributed bitonic sort implementation. 
+The benchmarks were conducted using a total problem size of $2^{27}$ elements, varying the number of processes 
+as $2^p$. We evaluated two levels of parallel recursion depth (1 and 2) in the OpenMP merge sort and measured 
+speedup separately for the local sorting time and the overall execution time.
+
+As the number of processes increases, the size of the local data per process decreases, which reduces the 
+effectiveness of thread-level parallelism. Nevertheless, for smaller process counts (larger per-process workload),
+we observe significant speedups in both local sorting and total execution time. The gains are more pronounced in 
+the initial sorting phase, as the impact of communication overhead becomes more dominant at higher process counts.
+These observations demonstrate the effectiveness of hybrid parallelism, especially in scenarios where local 
+computation remains a substantial portion of the overall workload.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Processes}} & \multicolumn{2}{c|}{\textbf{Speedup (Depth 1)}} & 
+\multicolumn{2}{c|}{\textbf{Speedup (Depth 2)}} \\
+\cline{2-5}
+ & \textbf{Initial Sort} & \textbf{Total} & \textbf{Initial Sort} & \textbf{Total} \\
+\hline
+1 & 1.83 & 1.83 & 1.84 & 1.84 \\
+2 & 1.92 & 1.82 & 1.93 & 1.83 \\
+4 & 1.92 & 1.65 & 1.79 & 1.55 \\
+8 & 1.88 & 1.51 & 1.86 & 1.51 \\
+16 & 1.82 & 1.37 & 1.84 & 1.38 \\
+32 & 1.80 & 1.31 & 1.79 & 1.30 \\
+64 & 1.77 & 1.21 & 1.72 & 1.20 \\
+128 & 1.66 & 1.14 & 1.59 & 1.12 \\
+\hline
+\end{tabular}
+\caption{Speedup from OpenMP parallelism in local sorting for total problem size $2^{27}$ and varying 
+number of processes.}
+\label{tab:omp_speedup}
+\end{table}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=1\linewidth]{figures/total_time_vs_elements.png}
-    \caption{Total execution time vs total array size for all $(p, q)$ combinations.}
-    \label{fig:total_time_vs_elements}
+    \includegraphics[width=1\linewidth]{figures/total_time_vs_procs_by_depth.png}
+    \caption{Total execution time versus number of processes ($2^p$) for different OpenMP recursion depths, 
+    for total input size $2^{27}$.}
+    \label{fig:total_time_vs_procs_by_depth}
 \end{figure}
 
-\section{Conclusions and Future Work}
 
-In this work, we developed and evaluated a hybrid distributed sorting algorithm that combines local sorting 
-with inter-process Bitonic merging. The design leverages the structured nature of Bitonic Sort and the 
-communication regularity provided by the hypercube topology formed through bitwise XOR partner selection.
+\section*{Conclusions \& Future Work}
 
-Our benchmarks show that the algorithm scales well with increasing problem size and number of processes. 
-When the number of processes is relatively small, performance is limited by the cost of local sorting. 
-However, as the number of processes increases, pairwise communication emerges as the dominant bottleneck. 
-We explored the effect of buffer splitting as a strategy to mitigate this cost, finding that it provides 
-marginal benefits only in specific configurations, and may become counterproductive in high-parallelism 
-regimes due to increased message overhead.
+This work demonstrates that a hybrid distributed Bitonic sort can effectively leverage both inter-node 
+parallelism through MPI and intra-node parallelism via OpenMP to improve sorting performance for large datasets. 
+While initial local sorting dominates execution time for small process counts, communication overhead becomes the 
+primary bottleneck as the number of processes increases. Techniques such as buffer splitting yield modest 
+improvements in communication efficiency, but the scalability remains limited by inter-process data exchanges. 
+Incorporating OpenMP parallelism in local sorting provides significant speedups, particularly when each process 
+has a substantial workload. For future work, exploring GPU acceleration with CUDA for the initial local sorting 
+phase promises further performance gains by exploiting massively parallel architectures within each compute node, 
+potentially alleviating the local sorting bottleneck and improving overall scalability.
 
-Future work will focus on optimizing the local sorting phase by implementing Bitonic Sort on GPUs 
-using CUDA. Since Bitonic Sort is inherently parallel and well-suited for GPU architectures, this approach 
-can significantly accelerate local sorting, reduce the overall execution time, and better balance the 
-computation-communication ratio in the distributed algorithm.
-
-Overall, the results validate that distributed Bitonic Sort can serve as a scalable backbone for parallel 
-sorting tasks, provided that communication and local computation are carefully balanced.
 
 \section*{Acknowledgments}
 
